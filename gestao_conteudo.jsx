@@ -4,7 +4,7 @@ import {
   Plus, X, Trash2, Edit3, Download, ExternalLink, Upload,
   CheckCircle2, Circle, Clock, AlertCircle, Search,
   ChevronLeft, ChevronRight, MoreVertical, Filter, Image as ImageIcon,
-  Sparkles, FileUp, Link as LinkIcon, Pencil, Check, Menu, ZoomIn, Settings
+  Sparkles, FileUp, Link as LinkIcon, Pencil, Check, Menu, ZoomIn, Settings, Eye, EyeOff
 } from 'lucide-react';
 
 /* ============================================================
@@ -878,6 +878,7 @@ function UserDisplay({ user, onLogout }) {
 function LoginScreen({ onLogin }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -981,7 +982,12 @@ function LoginScreen({ onLogin }) {
             </div>
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: COLORS.mistDim, letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: 7 }}>Senha</label>
-              <input className="login-input" type="password" value={password} required onChange={e => setPassword(e.target.value)} placeholder="••••••••" />
+              <div style={{ position: 'relative' }}>
+                <input className="login-input" type={showPwd ? 'text' : 'password'} value={password} required onChange={e => setPassword(e.target.value)} placeholder="••••••••" style={{ paddingRight: 42 }} />
+                <button type="button" onClick={() => setShowPwd(v => !v)} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', padding: 2, color: COLORS.mistMuted, display: 'flex', alignItems: 'center' }} tabIndex={-1} aria-label={showPwd ? 'Ocultar senha' : 'Ver senha'}>
+                  {showPwd ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
             </div>
           </div>
           <button className="login-btn" type="submit" disabled={loading} style={{ marginTop: 24 }}>
