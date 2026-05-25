@@ -1,0 +1,23 @@
+# macOS
+.DS_Store
+
+# Editores
+.vscode/
+.idea/
+*.swp
+*~
+
+# Node (caso o projeto migre pra build com Vite/Next no futuro)
+node_modules/
+dist/
+build/
+.env
+.env.local
+*.log
+
+# Netlify (estado local de deploy — tem caminhos absolutos da máquina)
+.netlify/
+
+# Claude Code — configurações locais/permissões (não subir pro repo)
+.claude/settings.local.json
+.claude/projects/
