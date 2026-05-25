@@ -354,6 +354,13 @@ function getDriveDownloadUrl(url) {
   } catch (_) {}
   return null;
 }
+// Faz parse de 'YYYY-MM-DD' como hor\u00e1rio LOCAL, evitando bug de fuso D-1.
+function parseLocalDate(str) {
+  if (!str) return null;
+  const part = str.slice(0, 10);
+  const [y, m, d] = part.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
 function slugify(s) {
   return s.toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
     .toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
