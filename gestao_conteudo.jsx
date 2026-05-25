@@ -643,11 +643,22 @@ function GlobalStyles() {
         color: transparent;
       }
 
+      /* layout helpers */
+      .entity-header-box { padding: 28px 32px 0; }
+      .tab-content { padding: 28px; }
+      .filter-bar {
+        display: flex; justify-content: space-between;
+        align-items: center; margin-bottom: 18px;
+        gap: 8px;
+      }
+
       /* ===== MOBILE ===== */
       .hamburger-btn { display: none !important; }
       @media (max-width: 768px) {
         .hamburger-btn { display: flex !important; }
         .header-section-pills { display: none !important; }
+
+        main { overflow-x: hidden; }
 
         .sidebar-drawer {
           position: fixed !important;
@@ -678,12 +689,20 @@ function GlobalStyles() {
         .tab { white-space: nowrap; padding: 12px 14px; }
 
         .cal-grid { gap: 3px; }
-        .cal-cell { min-height: 52px; padding: 4px 3px; }
-        .cal-slot { font-size: 8.5px; padding: 1px 3px; gap: 2px; }
+        .cal-cell { min-height: 52px; padding: 4px 3px; min-width: 0; overflow: hidden; }
+        .cal-slot { font-size: 8.5px; padding: 1px 3px; gap: 2px; min-width: 0; overflow: hidden; }
         .cal-day-num { font-size: 10.5px; }
 
         .h-title { font-size: 20px !important; }
         .toast { left: 12px; right: 12px; bottom: 12px; }
+
+        /* padding compacto no mobile */
+        .entity-header-box { padding: 16px 16px 0; }
+        .tab-content { padding: 16px; }
+
+        /* filter bar: quebra linha no mobile */
+        .filter-bar { flex-wrap: wrap; row-gap: 8px; }
+        .filter-bar > .btn-primary { width: 100%; justify-content: center; }
       }
     `}</style>
   );
@@ -1104,7 +1123,7 @@ function Sidebar({ section, setSection, entities, currentId, setCurrentId, onAdd
 function EntityHeader({ entity, activeTab, setActiveTab, tabs }) {
   const typeLabel = entity.type === 'director' ? 'Diretor' : entity.type === 'group' ? 'Grupo' : 'Empresa';
   return (
-    <div style={{ padding: '28px 32px 0', borderBottom: '1px solid var(--ink-border-soft)', position: 'relative', zIndex: 1 }}>
+    <div className="entity-header-box" style={{ borderBottom: '1px solid var(--ink-border-soft)', position: 'relative', zIndex: 1 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <div style={{
@@ -1233,9 +1252,9 @@ function RoteirosTab({ entityId, role, showToast }) {
   const filtered = items.filter(i => filter === 'all' || i.status === filter);
 
   return (
-    <div style={{ padding: 28 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
-        <div style={{ display: 'flex', gap: 6 }}>
+    <div className="tab-content">
+      <div className="filter-bar">
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
           {[
             { id: 'all', label: 'Todos', count: items.length },
             { id: 'para-gravar', label: 'Para gravar', count: items.filter(i => i.status === 'para-gravar').length },
@@ -1503,9 +1522,9 @@ function EstaticosTab({ entityId, role, showToast }) {
   const filtered = items.filter(i => filter === 'all' || i.status === filter);
 
   return (
-    <div style={{ padding: 28 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
-        <div style={{ display: 'flex', gap: 6 }}>
+    <div className="tab-content">
+      <div className="filter-bar">
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
           {[
             { id: 'all', label: 'Todos', count: items.length },
             { id: 'para-postar', label: 'Para postar', count: items.filter(i => i.status === 'para-postar').length },
@@ -1811,9 +1830,9 @@ function VideosTab({ entityId, role, showToast }) {
   const filtered = items.filter(i => filter === 'all' || i.status === filter);
 
   return (
-    <div style={{ padding: 28 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
-        <div style={{ display: 'flex', gap: 6 }}>
+    <div className="tab-content">
+      <div className="filter-bar">
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
           {[
             { id: 'all', label: 'Todos', count: items.length },
             { id: 'para-postar', label: 'Para postar', count: items.filter(i => i.status === 'para-postar').length },
@@ -2109,8 +2128,8 @@ function CronogramaTab({ entity, role, showToast }) {
   }
 
   return (
-    <div style={{ padding: 28 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
+    <div className="tab-content">
+      <div className="filter-bar">
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           <h2 style={{ margin: 0, fontSize: 17, fontWeight: 600, letterSpacing: '-0.01em' }}>
             {MONTHS_PT[month]} <span style={{ color: 'var(--mist-muted)', fontWeight: 400 }}>{year}</span>
@@ -2303,8 +2322,8 @@ function EventosTab({ entityId, role, showToast }) {
   const past = sorted.filter(e => e.date && parseLocalDate(e.date) < todayLocal).reverse();
 
   return (
-    <div style={{ padding: 28 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
+    <div className="tab-content">
+      <div className="filter-bar">
         <div>
           <h2 style={{ margin: 0, fontSize: 17, fontWeight: 600 }}>Eventos futuros</h2>
           <div style={{ fontSize: 12.5, color: 'var(--mist-dim)', marginTop: 2 }}>Captação de vídeo, encontros, gravações</div>
