@@ -742,7 +742,6 @@ function GlobalStyles() {
         .sidebar-overlay {
           position: fixed; inset: 0; z-index: 199;
           background: rgba(0,0,0,0.55);
-          backdrop-filter: blur(3px);
           animation: fadeIn 0.2s ease;
         }
         .mobile-section-pills { display: flex !important; }
