@@ -4,7 +4,7 @@ import {
   Plus, X, Trash2, Edit3, Download, ExternalLink, Upload,
   CheckCircle2, Circle, Clock, AlertCircle, Search,
   ChevronLeft, ChevronRight, MoreVertical, Filter, Image as ImageIcon,
-  Sparkles, FileUp, Link as LinkIcon, Pencil, Check, Menu, ZoomIn
+  Sparkles, FileUp, Link as LinkIcon, Pencil, Check, Menu, ZoomIn, Settings
 } from 'lucide-react';
 
 /* ============================================================
@@ -131,6 +131,7 @@ const K = {
   pdf: (fid) => `pdf:${fid}`,
   thumb: (fid) => `thumb:${fid}`,
   image: (fid) => `image:${fid}`,
+  config: (eid) => `entity:${eid}:config`,
 };
 
 /* ============================================================
@@ -482,6 +483,17 @@ function GlobalStyles() {
       @keyframes slideUp { from { opacity: 0; transform: translateY(12px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
       @keyframes spin { to { transform: rotate(360deg); } }
       .fade-in { animation: fadeIn .25s ease; }
+      .day-toggle-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 7px; }
+      .day-btn {
+        padding: 10px 2px; border-radius: 10px; font-size: 12px; font-weight: 500;
+        cursor: pointer; text-align: center; transition: all 0.15s; border: 1.5px solid var(--ink-border);
+        background: var(--ink-raised); color: var(--mist-muted); font-family: inherit;
+      }
+      .day-btn.active-estatico { border-color: rgba(29,228,240,0.5); background: rgba(29,228,240,0.08); color: #1de4f0; font-weight: 700; }
+      .day-btn.active-reels { border-color: rgba(245,179,66,0.5); background: rgba(245,179,66,0.08); color: #f5b342; font-weight: 700; }
+      .config-card { background: var(--ink-raised); border: 1px solid var(--ink-border); border-radius: 14px; padding: 20px; margin-bottom: 16px; }
+      .config-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
+      .config-actions .btn-primary { flex: 1; justify-content: center; min-width: 140px; }
 
       .tab-strip {
         display: flex; gap: 2px;
@@ -2541,6 +2553,141 @@ function VideoModal({ item, onClose, onSave, existingThumb, showToast }) {
 }
 
 /* ============================================================
+   CONFIGURACAO TAB — visível só para gestor (role.canAll)
+============================================================ */
+function ConfiguracaoTab({ entity, showToast }) {
+  const defaults = getScheduleRules(entity.type);
+  const [estaticoDays, setEstaticoDays] = useState(defaults.estatico);
+  const [reelsDays, setReelsDays]       = useState(defaults.reels);
+  const [loaded, setLoaded]             = useState(false);
+  const [saving, setSaving]             = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      const saved = await storage.getJSON(K.config(entity.id), null);
+      if (saved) {
+        setEstaticoDays(saved.estatico || defaults.estatico);
+        setReelsDays(saved.reels || defaults.reels);
+      }
+      setLoaded(true);
+    })();
+  }, [entity.id]);
+
+  function toggleDay(days, setDays, idx) {
+    if (days.includes(idx)) {
+      if (days.length <= 1) return; // mínimo 1 dia
+      setDays(days.filter(d => d !== idx));
+    } else {
+      setDays([...days, idx].sort((a, b) => a - b));
+    }
+  }
+
+  async function handleSave() {
+    setSaving(true);
+    await storage.set(K.config(entity.id), { estatico: estaticoDays, reels: reelsDays });
+    setSaving(false);
+    showToast('success', 'Cronograma salvo com sucesso');
+  }
+
+  async function handleReset() {
+    setEstaticoDays(defaults.estatico);
+    setReelsDays(defaults.reels);
+    await storage.set(K.config(entity.id), { estatico: defaults.estatico, reels: defaults.reels });
+    showToast('success', 'Padrão restaurado');
+  }
+
+  const weekE = estaticoDays.length;
+  const monthE = Math.round(weekE * 4.33);
+  const weekR = reelsDays.length;
+  const monthR = Math.round(weekR * 4.33);
+
+  if (!loaded) return null;
+
+  return (
+    <div className="tab-content">
+      {/* Título */}
+      <div style={{ marginBottom: 24 }}>
+        <h2 style={{ margin: '0 0 6px', fontSize: 17, fontWeight: 700, letterSpacing: '-0.01em' }}>Cronograma de postagens</h2>
+        <div style={{ fontSize: 13, color: 'var(--mist-dim)', lineHeight: 1.5 }}>
+          Configure os dias da semana para cada tipo de conteúdo de{' '}
+          <strong style={{ color: 'var(--mist)' }}>{entity.name}</strong>.
+          O calendário se atualiza automaticamente.
+        </div>
+      </div>
+
+      {/* Estáticos */}
+      <div className="config-card">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--mist)', display: 'flex', alignItems: 'center', gap: 7, marginBottom: 3 }}>
+              <span style={{ width: 10, height: 10, borderRadius: 3, background: 'rgba(29,228,240,0.35)', flexShrink: 0 }} />
+              Estáticos
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--mist-dim)' }}>
+              {weekE}× por semana · ~{monthE} por mês
+            </div>
+          </div>
+          <div style={{ fontSize: 26, fontWeight: 800, color: COLORS.brandCyan, fontFamily: 'var(--mono)', lineHeight: 1 }}>
+            {weekE}<span style={{ fontSize: 14, fontWeight: 500 }}>×</span>
+          </div>
+        </div>
+        <div className="day-toggle-grid">
+          {DAYS_SHORT_PT.map((label, idx) => (
+            <button
+              key={idx}
+              className={`day-btn${estaticoDays.includes(idx) ? ' active-estatico' : ''}`}
+              onClick={() => toggleDay(estaticoDays, setEstaticoDays, idx)}
+            >{label}</button>
+          ))}
+        </div>
+      </div>
+
+      {/* Reels */}
+      <div className="config-card">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--mist)', display: 'flex', alignItems: 'center', gap: 7, marginBottom: 3 }}>
+              <span style={{ width: 10, height: 10, borderRadius: 3, background: 'rgba(245,179,66,0.35)', flexShrink: 0 }} />
+              Reels
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--mist-dim)' }}>
+              {weekR}× por semana · ~{monthR} por mês
+            </div>
+          </div>
+          <div style={{ fontSize: 26, fontWeight: 800, color: COLORS.warn, fontFamily: 'var(--mono)', lineHeight: 1 }}>
+            {weekR}<span style={{ fontSize: 14, fontWeight: 500 }}>×</span>
+          </div>
+        </div>
+        <div className="day-toggle-grid">
+          {DAYS_SHORT_PT.map((label, idx) => (
+            <button
+              key={idx}
+              className={`day-btn${reelsDays.includes(idx) ? ' active-reels' : ''}`}
+              onClick={() => toggleDay(reelsDays, setReelsDays, idx)}
+            >{label}</button>
+          ))}
+        </div>
+      </div>
+
+      {/* Resumo */}
+      <div style={{ background: 'var(--ink-base)', border: '1px solid var(--ink-border-soft)', borderRadius: 10, padding: '12px 16px', marginBottom: 20, fontSize: 12.5, color: 'var(--mist-dim)', lineHeight: 1.6 }}>
+        <strong style={{ color: 'var(--mist)' }}>Resumo mensal estimado:</strong>{' '}
+        ~{monthE} estáticos · ~{monthR} reels · <strong style={{ color: 'var(--mist)' }}>{monthE + monthR} posts no total</strong>.
+        As alterações refletem no calendário da aba <em>Cronograma</em>.
+      </div>
+
+      {/* Ações */}
+      <div className="config-actions">
+        <button className="btn" onClick={handleReset}>Restaurar padrão</button>
+        <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
+          <Settings size={14} /> {saving ? 'Salvando…' : 'Salvar cronograma'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
    CRONOGRAMA TAB (monthly calendar)
 ============================================================ */
 function CronogramaTab({ entity, role, showToast }) {
@@ -2549,22 +2696,24 @@ function CronogramaTab({ entity, role, showToast }) {
   const [videos, setVideos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedDay, setSelectedDay] = useState(null);
+  const [rules, setRules] = useState(() => getScheduleRules(entity.type));
 
   const today = new Date();
   const baseDate = new Date(today.getFullYear(), today.getMonth() + monthOffset, 1);
   const year = baseDate.getFullYear();
   const month = baseDate.getMonth();
-  const rules = getScheduleRules(entity.type);
 
   useEffect(() => {
     (async () => {
       setLoading(true);
-      const [estaticosData, videosData] = await Promise.all([
+      const [estaticosData, videosData, savedConfig] = await Promise.all([
         storage.getJSON(K.estaticos(entity.id), []),
         storage.getJSON(K.videos(entity.id), []),
+        storage.getJSON(K.config(entity.id), null),
       ]);
       setEstaticos(estaticosData);
       setVideos(videosData);
+      setRules(savedConfig || getScheduleRules(entity.type));
       setLoading(false);
     })();
   }, [entity.id]);
@@ -2668,7 +2817,7 @@ function CronogramaTab({ entity, role, showToast }) {
 
       <div style={{ marginTop: 20, padding: 14, background: 'var(--ink-base)', borderRadius: 10, border: '1px solid var(--ink-border-soft)', fontSize: 12.5, color: 'var(--mist-dim)' }}>
         <strong style={{ color: 'var(--mist)' }}>Regras de postagem · {entity.type === 'company' ? 'Empresas' : 'Diretoria'}:</strong>
-        {' '}Estáticos {entity.type === 'company' ? 'seg, ter, qui, sex' : 'seg a sáb'} · Reels {entity.type === 'company' ? 'qua, sáb' : 'seg, qua, sáb'}.
+        {' '}Estáticos {rules.estatico.map(d => DAYS_SHORT_PT[d]).join(', ')} · Reels {rules.reels.map(d => DAYS_SHORT_PT[d]).join(', ')}.
         Os itens das abas "Estáticos" e "Vídeos Editados" aparecem aqui automaticamente quando você define uma data agendada.
       </div>
 
@@ -3073,12 +3222,14 @@ export default function App() {
   // Tabs depend on entity type
   const tabs = useMemo(() => {
     if (!currentEntity) return [];
+    const configTab = user?.role?.canAll ? [{ id: 'configuracao', label: 'Configurações', icon: Settings }] : [];
     if (currentEntity.type === 'group') {
       return [
         { id: 'cronograma', label: 'Cronograma', icon: Calendar },
         { id: 'estaticos', label: 'Estáticos', icon: ImageIcon },
         { id: 'videos', label: 'Vídeos Editados', icon: Video },
         { id: 'eventos', label: 'Eventos futuros', icon: CalendarDays },
+        ...configTab,
       ];
     }
     return [
@@ -3086,8 +3237,9 @@ export default function App() {
       { id: 'estaticos', label: 'Estáticos', icon: ImageIcon },
       { id: 'videos', label: 'Vídeos Editados', icon: Video },
       { id: 'cronograma', label: 'Cronograma', icon: Calendar },
+      ...configTab,
     ];
-  }, [currentEntity]);
+  }, [currentEntity, user]);
 
   // Reset activeTab if not present in new tabs list
   useEffect(() => {
@@ -3163,6 +3315,7 @@ export default function App() {
                 {activeTab === 'videos' && <VideosTab entityId={currentEntity.id} role={role} showToast={showToast} allEntities={[...entities.directors, entities.group, ...entities.companies]} />}
                 {activeTab === 'cronograma' && <CronogramaTab entity={currentEntity} role={role} showToast={showToast} />}
                 {activeTab === 'eventos' && <EventosTab entityId={currentEntity.id} role={role} showToast={showToast} />}
+                {activeTab === 'configuracao' && <ConfiguracaoTab entity={currentEntity} showToast={showToast} />}
               </div>
             ) : (
               <div className="empty" style={{ paddingTop: 100 }}>
