@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   Users, Building2, FileText, Video, Calendar, CalendarDays,
   Plus, X, Trash2, Edit3, Download, ExternalLink, Upload,
@@ -1910,6 +1910,35 @@ function EstaticoModal({ item, onClose, onSave, existingImage, showToast }) {
 }
 
 /* ============================================================
+   DRIVE ERROR BOUNDARY — captura crashes de render no modal
+============================================================ */
+class DriveErrorBoundary extends React.Component {
+  constructor(props) { super(props); this.state = { err: null }; }
+  static getDerivedStateFromError(e) { return { err: e }; }
+  componentDidCatch(e, info) { console.error('[B.SISTEM Drive]', e, info); }
+  render() {
+    if (this.state.err) {
+      const msg = this.state.err?.message || String(this.state.err) || 'Erro inesperado.';
+      return (
+        <div className="modal-backdrop" onClick={this.props.onClose}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 460 }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--ink-border-soft)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontWeight: 700, fontSize: 15 }}>Erro ao importar do Drive</span>
+              <button className="btn-icon" onClick={this.props.onClose}><X size={16} /></button>
+            </div>
+            <div style={{ padding: '20px 20px 24px' }}>
+              <div style={{ color: '#f56565', fontSize: 13, lineHeight: 1.55, marginBottom: 16, background: 'rgba(245,101,101,0.08)', padding: '10px 13px', borderRadius: 8 }}>{msg}</div>
+              <button className="btn" onClick={this.props.onClose}>Fechar</button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+/* ============================================================
    DRIVE IMPORT MODAL
 ============================================================ */
 function DriveImportModal({ allEntities, onClose, onDone, showToast }) {
@@ -2009,7 +2038,8 @@ function DriveImportModal({ allEntities, onClose, onDone, showToast }) {
       setRows(parsed);
       setStep('preview');
     } catch (err) {
-      setError(err.message);
+      console.error('[B.SISTEM Drive] handleFetch:', err);
+      setError(err?.message || String(err) || 'Erro desconhecido. Tente novamente.');
       setStep('input');
     }
   }
@@ -2126,7 +2156,7 @@ function DriveImportModal({ allEntities, onClose, onDone, showToast }) {
                 </div>
               ) : rows.map((r, i) => (
                 <div
-                  key={r.file.id}
+                  key={r.file?.id ?? i}
                   onClick={() => r.entity && toggleRow(i)}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 12, padding: '10px 20px',
@@ -2139,7 +2169,7 @@ function DriveImportModal({ allEntities, onClose, onDone, showToast }) {
                 >
                   <input
                     type="checkbox"
-                    checked={r.selected}
+                    checked={!!r.selected}
                     disabled={!r.entity}
                     onChange={() => toggleRow(i)}
                     onClick={e => e.stopPropagation()}
@@ -2147,7 +2177,7 @@ function DriveImportModal({ allEntities, onClose, onDone, showToast }) {
                   />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--mist)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {r.file.name}
+                      {r.file?.name ?? '(sem nome)'}
                     </div>
                     <div style={{ fontSize: 11.5, color: 'var(--mist-dim)', marginTop: 2 }}>
                       {r.entity
@@ -2386,12 +2416,14 @@ function VideosTab({ entityId, role, showToast, allEntities }) {
         />
       )}
       {driveOpen && (
-        <DriveImportModal
-          allEntities={allEntities || []}
-          onClose={() => setDriveOpen(false)}
-          onDone={() => { setDriveOpen(false); setReloadKey(k => k + 1); }}
-          showToast={showToast}
-        />
+        <DriveErrorBoundary onClose={() => setDriveOpen(false)}>
+          <DriveImportModal
+            allEntities={allEntities || []}
+            onClose={() => setDriveOpen(false)}
+            onDone={() => { setDriveOpen(false); setReloadKey(k => k + 1); }}
+            showToast={showToast}
+          />
+        </DriveErrorBoundary>
       )}
     </div>
   );
