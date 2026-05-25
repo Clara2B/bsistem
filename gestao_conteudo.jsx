@@ -4,7 +4,7 @@ import {
   Plus, X, Trash2, Edit3, Download, ExternalLink, Upload,
   CheckCircle2, Circle, Clock, AlertCircle, Search,
   ChevronLeft, ChevronRight, MoreVertical, Filter, Image as ImageIcon,
-  Sparkles, FileUp, Link as LinkIcon, Pencil, Check, Menu, ZoomIn, Settings, Eye, EyeOff
+  Sparkles, FileUp, Link as LinkIcon, Pencil, Check, Menu, ZoomIn, Settings, Eye, EyeOff, Sun, Moon
 } from 'lucide-react';
 
 /* ============================================================
@@ -49,6 +49,28 @@ const COLORS = {
   danger:        '#ef6464',
   warn:          '#f5b342',
   success:       '#1de4f0',
+};
+
+const LIGHT_COLORS = {
+  inkDeep:       '#f0f3f9',
+  inkBase:       '#ffffff',
+  inkRaised:     '#f7f9fc',
+  inkSoft:       '#edf0f7',
+  inkBorder:     '#cdd3e0',
+  inkBorderSoft: '#dfe4ef',
+  inkHover:      '#e4e9f3',
+  mist:          '#0d1117',
+  mistDim:       '#4a5568',
+  mistMuted:     '#8896a8',
+  brandBlue:     '#0166fc',
+  brandCyan:     '#0088a8',
+  brandMid:      '#009bed',
+  brandSoft:     'rgba(1, 102, 252, 0.10)',
+  brandGlow:     'rgba(1, 102, 252, 0.22)',
+  cyanSoft:      'rgba(0, 136, 168, 0.10)',
+  danger:        '#dc2626',
+  warn:          '#b45309',
+  success:       '#047857',
 };
 
 const BRAND_GRADIENT = 'linear-gradient(135deg, #0166fc 0%, #009bed 50%, #1de4f0 100%)';
@@ -327,35 +349,43 @@ Excelência é uma escolha que você faz todo dia.
 };
 
 
-function GlobalStyles() {
+function GlobalStyles({ theme = 'dark' }) {
+  const C = theme === 'light' ? LIGHT_COLORS : COLORS;
+  const isLight = theme === 'light';
   return (
     <style>{`
       :root {
-        --ink-deep: ${COLORS.inkDeep};
-        --ink-base: ${COLORS.inkBase};
-        --ink-raised: ${COLORS.inkRaised};
-        --ink-soft: ${COLORS.inkSoft};
-        --ink-border: ${COLORS.inkBorder};
-        --ink-border-soft: ${COLORS.inkBorderSoft};
-        --ink-hover: ${COLORS.inkHover};
-        --mist: ${COLORS.mist};
-        --mist-dim: ${COLORS.mistDim};
-        --mist-muted: ${COLORS.mistMuted};
-        --brand-blue: ${COLORS.brandBlue};
-        --brand-cyan: ${COLORS.brandCyan};
-        --brand-mid: ${COLORS.brandMid};
-        --brand-soft: ${COLORS.brandSoft};
-        --brand-glow: ${COLORS.brandGlow};
-        --cyan-soft: ${COLORS.cyanSoft};
-        --danger: ${COLORS.danger};
-        --warn: ${COLORS.warn};
-        --success: ${COLORS.success};
+        --ink-deep: ${C.inkDeep};
+        --ink-base: ${C.inkBase};
+        --ink-raised: ${C.inkRaised};
+        --ink-soft: ${C.inkSoft};
+        --ink-border: ${C.inkBorder};
+        --ink-border-soft: ${C.inkBorderSoft};
+        --ink-hover: ${C.inkHover};
+        --mist: ${C.mist};
+        --mist-dim: ${C.mistDim};
+        --mist-muted: ${C.mistMuted};
+        --brand-blue: ${C.brandBlue};
+        --brand-cyan: ${C.brandCyan};
+        --brand-mid: ${C.brandMid};
+        --brand-soft: ${C.brandSoft};
+        --brand-glow: ${C.brandGlow};
+        --cyan-soft: ${C.cyanSoft};
+        --danger: ${C.danger};
+        --warn: ${C.warn};
+        --success: ${C.success};
         --brand-gradient: ${BRAND_GRADIENT};
         --brand-gradient-h: ${BRAND_GRADIENT_HORIZONTAL};
-        --shadow-sm: 0 1px 2px rgba(0,0,0,0.4);
-        --shadow-md: 0 4px 14px rgba(0,0,0,0.4), 0 1px 0 rgba(255,255,255,0.02) inset;
-        --shadow-lg: 0 24px 60px -10px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.03) inset;
+        --shadow-sm: ${isLight ? '0 1px 3px rgba(0,0,0,0.08)' : '0 1px 2px rgba(0,0,0,0.4)'};
+        --shadow-md: ${isLight ? '0 4px 14px rgba(0,0,0,0.07), 0 1px 0 rgba(255,255,255,0.9) inset' : '0 4px 14px rgba(0,0,0,0.4), 0 1px 0 rgba(255,255,255,0.02) inset'};
+        --shadow-lg: ${isLight ? '0 24px 60px -10px rgba(0,0,0,0.13), 0 0 0 1px rgba(0,0,0,0.05) inset' : '0 24px 60px -10px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.03) inset'};
         --shadow-glow: 0 0 0 1px rgba(1,102,252,0.25), 0 8px 30px rgba(1,102,252,0.15);
+        --header-bg: ${isLight ? 'rgba(255,255,255,0.92)' : 'rgba(11,13,17,0.88)'};
+        --status-success: ${isLight ? C.brandCyan : COLORS.brandCyan};
+        --status-success-bg: ${isLight ? 'rgba(0,136,168,0.12)' : 'rgba(29,228,240,0.14)'};
+        --status-warn-col: ${isLight ? C.warn : COLORS.warn};
+        --status-warn-bg: ${isLight ? 'rgba(180,83,9,0.10)' : 'rgba(245,179,66,0.10)'};
+        --mono: 'Geist Mono', ui-monospace, monospace;
       }
       .app-root, .app-root * { box-sizing: border-box; }
       .app-root {
@@ -789,7 +819,42 @@ function GlobalStyles() {
         /* filter bar: quebra linha no mobile */
         .filter-bar { flex-wrap: wrap; row-gap: 8px; }
         .filter-bar > .btn-primary { width: 100%; justify-content: center; }
+        /* day-toggle mais compacto no mobile */
+        .day-toggle-grid { gap: 4px; }
+        .day-btn { padding: 9px 0; font-size: 10.5px; border-radius: 8px; }
       }
+      @media (max-width: 400px) {
+        .day-btn { padding: 7px 0; font-size: 9.5px; }
+        .entity-name-overflow { max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      }
+      ${isLight ? `
+        /* ===== LIGHT MODE OVERRIDES ===== */
+        .modal-backdrop { background: rgba(60,70,90,0.38) !important; }
+        .sidebar-overlay { background: rgba(60,70,90,0.35) !important; }
+        .sidebar-drawer { box-shadow: 4px 0 24px rgba(0,0,0,0.12) !important; }
+        .app-root::before { opacity: 0.35; }
+        .toast { box-shadow: 0 4px 18px rgba(0,0,0,0.12); }
+        .item-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        /* day toggles in light mode — override hardcoded cyan/amber */
+        .day-btn.active-estatico {
+          border-color: rgba(1,102,252,0.40) !important;
+          background: rgba(1,102,252,0.08) !important;
+          color: #0055d4 !important;
+        }
+        .day-btn.active-reels {
+          border-color: rgba(180,83,9,0.40) !important;
+          background: rgba(180,83,9,0.08) !important;
+          color: #b45309 !important;
+        }
+        /* calendar slots lighter */
+        .cal-slot.estatico { background: rgba(1,102,252,0.08) !important; }
+        .cal-slot.reels { background: rgba(180,83,9,0.09) !important; color: #b45309 !important; }
+        .cal-cell.today { border-color: rgba(1,102,252,0.30); box-shadow: 0 0 0 1px rgba(1,102,252,0.12); }
+        /* scrollbar in light mode */
+        .app-root ::-webkit-scrollbar-thumb { background: var(--ink-border); }
+        /* img lightbox always dark */
+        .img-preview-backdrop { background: rgba(15,20,35,0.92) !important; }
+      ` : ''}
     `}</style>
   );
 }
@@ -1007,15 +1072,15 @@ function LoginScreen({ onLogin }) {
 /* ============================================================
    HEADER
 ============================================================ */
-function Header({ section, setSection, user, onLogout, onMenuToggle }) {
+function Header({ section, setSection, user, onLogout, onMenuToggle, theme, onToggleTheme }) {
   return (
     <header style={{
       position: 'relative',
       zIndex: 5,
       borderBottom: '1px solid var(--ink-border-soft)',
-      background: 'rgba(11, 13, 17, 0.85)',
-      backdropFilter: 'blur(12px)',
-      padding: '14px 20px',
+      background: 'var(--header-bg)',
+      backdropFilter: 'blur(14px)',
+      padding: '12px 20px',
       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       gap: 12,
       flexWrap: 'wrap',
@@ -1045,7 +1110,17 @@ function Header({ section, setSection, user, onLogout, onMenuToggle }) {
         </button>
       </div>
 
-      <UserDisplay user={user} onLogout={onLogout} />
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <button
+          className="btn-icon"
+          onClick={onToggleTheme}
+          title={theme === 'dark' ? 'Modo claro' : 'Modo escuro'}
+          style={{ padding: 8 }}
+        >
+          {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+        </button>
+        <UserDisplay user={user} onLogout={onLogout} />
+      </div>
     </header>
   );
 }
@@ -1231,15 +1306,15 @@ function EntityHeader({ entity, activeTab, setActiveTab, tabs }) {
              entity.type === 'company' ? entity.name.slice(0, 2).toUpperCase() :
              entity.name.split(' ').map(p => p[0]).join('').slice(0, 2).toUpperCase()}
           </div>
-          <div>
-            <h1 className="h-title">{entity.name}</h1>
+          <div style={{ minWidth: 0 }}>
+            <h1 className="h-title entity-name-overflow">{entity.name}</h1>
             <div className="h-sub" style={{ marginTop: 3, display: 'flex', alignItems: 'center', gap: 10 }}>
               <span style={{
                 fontSize: 11, fontWeight: 600, letterSpacing: '0.08em',
                 textTransform: 'uppercase', color: 'var(--mist-muted)'
               }}>{typeLabel}</span>
-              <span style={{ width: 3, height: 3, borderRadius: '50%', background: 'var(--ink-border)' }}></span>
-              <span className="mono" style={{ fontSize: 11.5, color: 'var(--mist-muted)' }}>@{entity.id}</span>
+              <span style={{ width: 3, height: 3, borderRadius: '50%', background: 'var(--ink-border)', flexShrink: 0 }}></span>
+              <span className="mono" style={{ fontSize: 11.5, color: 'var(--mist-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>@{entity.id}</span>
             </div>
           </div>
         </div>
@@ -1268,10 +1343,10 @@ function EntityHeader({ entity, activeTab, setActiveTab, tabs }) {
 ============================================================ */
 function StatusBadge({ status }) {
   const map = {
-    'para-gravar': { color: COLORS.warn, bg: 'rgba(245,179,66,0.10)', label: 'Para gravar' },
-    'gravado': { color: COLORS.brandCyan, bg: 'rgba(29,228,240,0.14)', label: 'Gravado' },
-    'para-postar': { color: COLORS.warn, bg: 'rgba(245,179,66,0.10)', label: 'Para postar' },
-    'postado': { color: COLORS.brandCyan, bg: 'rgba(29,228,240,0.14)', label: 'Postado' },
+    'para-gravar': { color: 'var(--status-warn-col)', bg: 'var(--status-warn-bg)', label: 'Para gravar' },
+    'gravado':     { color: 'var(--status-success)',  bg: 'var(--status-success-bg)', label: 'Gravado' },
+    'para-postar': { color: 'var(--status-warn-col)', bg: 'var(--status-warn-bg)', label: 'Para postar' },
+    'postado':     { color: 'var(--status-success)',  bg: 'var(--status-success-bg)', label: 'Postado' },
   };
   const s = map[status] || map['para-gravar'];
   return (
@@ -3120,6 +3195,16 @@ function AddCompanyModal({ onClose, onSave, showToast, existingIds }) {
 export default function App() {
   useFontInjection();
 
+  const [theme, setTheme] = useState(() => {
+    try { return localStorage.getItem('bboth:theme') || 'dark'; } catch { return 'dark'; }
+  });
+
+  function toggleTheme() {
+    const next = theme === 'dark' ? 'light' : 'dark';
+    setTheme(next);
+    try { localStorage.setItem('bboth:theme', next); } catch {}
+  }
+
   const [user, setUser] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
   const [section, setSection] = useState('diretoria');
@@ -3286,8 +3371,8 @@ export default function App() {
   if (!hydrated) {
     return (
       <div className="app-root" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
-        <GlobalStyles />
-        <div style={{ color: COLORS.mistDim, fontSize: 13 }}>Carregando...</div>
+        <GlobalStyles theme={theme} />
+        <div style={{ color: 'var(--mist-dim)', fontSize: 13 }}>Carregando...</div>
       </div>
     );
   }
@@ -3296,9 +3381,9 @@ export default function App() {
 
   return (
     <div className="app-root">
-      <GlobalStyles />
+      <GlobalStyles theme={theme} />
       <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-        <Header section={section} setSection={setSection} user={user} onLogout={handleLogout} onMenuToggle={() => setSidebarOpen(o => !o)} />
+        <Header section={section} setSection={setSection} user={user} onLogout={handleLogout} onMenuToggle={() => setSidebarOpen(o => !o)} theme={theme} onToggleTheme={toggleTheme} />
         <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
           <Sidebar
             section={section}
