@@ -1519,6 +1519,15 @@ function EstaticosTab({ entityId, role, showToast }) {
     await saveItems(items.map(i => i.id === item.id ? { ...i, status: newStatus } : i));
   }
 
+  async function handleDownloadImage(item) {
+    if (!item.imageKey) return;
+    const data = imgCache[item.imageKey] || await storage.get(K.image(item.imageKey));
+    if (!data) { showToast('error', 'Imagem não encontrada'); return; }
+    const ext = data.startsWith('data:image/png') ? 'png'
+               : data.startsWith('data:image/webp') ? 'webp' : 'jpg';
+    downloadBase64(data, `${slugify(item.title) || item.id}.${ext}`);
+  }
+
   const filtered = items.filter(i => filter === 'all' || i.status === filter);
 
   return (
@@ -1609,7 +1618,17 @@ function EstaticosTab({ entityId, role, showToast }) {
                   <div style={{ fontSize: 12.5, color: 'var(--mist-dim)', lineHeight: 1.45 }}>{item.description}</div>
                 )}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto', paddingTop: 6 }}>
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                    {item.imageKey && imgCache[item.imageKey] && (
+                      <button
+                        className="btn"
+                        style={{ padding: '4px 9px', fontSize: 11.5 }}
+                        onClick={() => handleDownloadImage(item)}
+                        title="Baixar imagem original"
+                      >
+                        <Download size={11} /> Baixar
+                      </button>
+                    )}
                     {item.designLink && (
                       <a href={item.designLink} target="_blank" rel="noopener noreferrer" className="btn" style={{ padding: '4px 9px', fontSize: 11.5, textDecoration: 'none' }}>
                         <LinkIcon size={11} /> Design
