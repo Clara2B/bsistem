@@ -4,7 +4,7 @@ import {
   Plus, X, Trash2, Edit3, Download, ExternalLink, Upload,
   CheckCircle2, Circle, Clock, AlertCircle, Search,
   ChevronLeft, ChevronRight, MoreVertical, Filter, Image as ImageIcon,
-  Sparkles, FileUp, Link as LinkIcon, Pencil, Check, Menu
+  Sparkles, FileUp, Link as LinkIcon, Pencil, Check, Menu, ZoomIn
 } from 'lucide-react';
 
 /* ============================================================
@@ -598,6 +598,61 @@ function GlobalStyles() {
       .cal-slot.reels { background: rgba(245,179,66,0.10); color: var(--warn); }
       .cal-slot.done.estatico { background: rgba(1,102,252,0.22); }
       .cal-slot.done.reels { background: rgba(245,179,66,0.20); }
+
+      /* Thumbnail clicável nos estáticos */
+      .img-thumb { cursor: zoom-in; position: relative; }
+      .img-thumb-overlay {
+        position: absolute; inset: 0;
+        background: rgba(0,0,0,0);
+        display: flex; align-items: center; justify-content: center;
+        transition: background 0.18s ease;
+        border-radius: inherit;
+      }
+      .img-thumb-overlay svg { opacity: 0; transition: opacity 0.18s ease; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.6)); }
+      .img-thumb:hover .img-thumb-overlay { background: rgba(0,0,0,0.38); }
+      .img-thumb:hover .img-thumb-overlay svg { opacity: 1; }
+
+      /* Preview lightbox */
+      .img-preview-backdrop {
+        position: fixed; inset: 0; z-index: 400;
+        background: rgba(2,4,8,0.94);
+        display: flex; align-items: center; justify-content: center;
+        padding: 16px;
+        animation: fadeIn .18s ease;
+      }
+      .img-preview-inner {
+        position: relative; display: flex; flex-direction: column;
+        align-items: center; gap: 14px;
+        max-width: min(92vw, 900px); max-height: 94vh;
+      }
+      .img-preview-img {
+        max-width: 100%; max-height: 74vh;
+        object-fit: contain;
+        border-radius: 10px;
+        box-shadow: 0 32px 96px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.06);
+      }
+      .img-preview-bar {
+        display: flex; align-items: center; justify-content: space-between;
+        gap: 12px; width: 100%;
+        background: rgba(255,255,255,0.06);
+        backdrop-filter: blur(14px);
+        border: 1px solid rgba(255,255,255,0.10);
+        border-radius: 12px; padding: 10px 16px;
+      }
+      .img-preview-close {
+        position: absolute; top: -14px; right: -14px;
+        width: 32px; height: 32px; border-radius: 50%;
+        background: rgba(255,255,255,0.13); border: 1px solid rgba(255,255,255,0.18);
+        display: flex; align-items: center; justify-content: center;
+        cursor: pointer; color: #fff; backdrop-filter: blur(8px);
+        transition: background 0.15s;
+      }
+      .img-preview-close:hover { background: rgba(255,255,255,0.22); }
+      @media (max-width: 768px) {
+        .img-preview-img { max-height: 60vh; }
+        .img-preview-bar { flex-wrap: wrap; gap: 8px; }
+        .img-preview-bar .btn-primary { width: 100%; justify-content: center; }
+      }
 
       .role-chip {
         padding: 3px 10px; border-radius: 999px;
@@ -1460,6 +1515,7 @@ function EstaticosTab({ entityId, role, showToast }) {
   const [editing, setEditing] = useState(null);
   const [loading, setLoading] = useState(true);
   const [imgCache, setImgCache] = useState({});
+  const [previewItem, setPreviewItem] = useState(null);
 
   const canEdit = role.canAll || role.canEstaticos;
 
@@ -1575,18 +1631,27 @@ function EstaticosTab({ entityId, role, showToast }) {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 14 }}>
           {filtered.map(item => (
             <div key={item.id} className="card" style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-              <div style={{
-                aspectRatio: '1/1',
-                background: item.imageKey && imgCache[item.imageKey]
-                  ? `url(${imgCache[item.imageKey]}) center/cover`
-                  : 'linear-gradient(135deg, var(--ink-soft) 0%, var(--ink-base) 100%)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                position: 'relative'
-              }}>
+              <div
+                className={item.imageKey && imgCache[item.imageKey] ? 'img-thumb' : ''}
+                onClick={() => item.imageKey && imgCache[item.imageKey] && setPreviewItem(item)}
+                style={{
+                  aspectRatio: '1/1',
+                  background: item.imageKey && imgCache[item.imageKey]
+                    ? `url(${imgCache[item.imageKey]}) center/cover`
+                    : 'linear-gradient(135deg, var(--ink-soft) 0%, var(--ink-base) 100%)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  position: 'relative'
+                }}
+              >
                 {!item.imageKey && (
                   <div style={{ color: 'var(--mist-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
                     <ImageIcon size={28} strokeWidth={1.5} />
                     <span style={{ fontSize: 11 }}>Sem imagem</span>
+                  </div>
+                )}
+                {item.imageKey && imgCache[item.imageKey] && (
+                  <div className="img-thumb-overlay">
+                    <ZoomIn size={32} color="#fff" />
                   </div>
                 )}
                 <div style={{ position: 'absolute', top: 10, left: 10 }}>
@@ -1662,6 +1727,55 @@ function EstaticosTab({ entityId, role, showToast }) {
           showToast={showToast}
         />
       )}
+
+      {previewItem && imgCache[previewItem.imageKey] && (
+        <ImagePreviewModal
+          item={previewItem}
+          imgSrc={imgCache[previewItem.imageKey]}
+          onClose={() => setPreviewItem(null)}
+          onDownload={() => handleDownloadImage(previewItem)}
+        />
+      )}
+    </div>
+  );
+}
+
+/* ============================================================
+   IMAGE PREVIEW MODAL
+============================================================ */
+function ImagePreviewModal({ item, imgSrc, onClose, onDownload }) {
+  useEffect(() => {
+    const handle = e => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', handle);
+    return () => window.removeEventListener('keydown', handle);
+  }, [onClose]);
+
+  return (
+    <div className="img-preview-backdrop" onClick={onClose}>
+      <div className="img-preview-inner" onClick={e => e.stopPropagation()}>
+        <button className="img-preview-close" onClick={onClose}>
+          <X size={16} />
+        </button>
+
+        <img className="img-preview-img" src={imgSrc} alt={item.title} />
+
+        <div className="img-preview-bar">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+            <StatusBadge status={item.status} />
+            <span style={{ fontSize: 14, fontWeight: 500, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {item.title}
+            </span>
+            {item.scheduledDate && (
+              <span className="mono" style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.45)', flexShrink: 0 }}>
+                {parseLocalDate(item.scheduledDate).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}
+              </span>
+            )}
+          </div>
+          <button className="btn btn-primary" onClick={onDownload} style={{ flexShrink: 0, gap: 7 }}>
+            <Download size={14} /> Baixar original
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
