@@ -733,7 +733,7 @@ function GlobalStyles() {
         .sidebar-drawer {
           position: fixed !important;
           left: 0; top: 0; bottom: 0;
-          z-index: 200;
+          z-index: 200 !important;
           transform: translateX(-100%);
           transition: transform 0.26s cubic-bezier(0.16,1,0.3,1);
           box-shadow: 6px 0 40px rgba(0,0,0,0.55);
