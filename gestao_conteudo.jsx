@@ -182,6 +182,10 @@ function slugify(s) {
     .toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
 }
 
+// Google OAuth \u2014 apenas o Client ID \u00e9 necess\u00e1rio no front-end (nunca o secret)
+const GOOGLE_CLIENT_ID = '471913353362-frk03uce1asebbn2vtitvaroicpqrn89.apps.googleusercontent.com';
+const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.readonly';
+
 /* ============================================================
    GLOBAL CSS (injected once)
 ============================================================ */
@@ -476,6 +480,7 @@ function GlobalStyles() {
       }
       @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
       @keyframes slideUp { from { opacity: 0; transform: translateY(12px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+      @keyframes spin { to { transform: rotate(360deg); } }
       .fade-in { animation: fadeIn .25s ease; }
 
       .tab-strip {
@@ -1905,15 +1910,272 @@ function EstaticoModal({ item, onClose, onSave, existingImage, showToast }) {
 }
 
 /* ============================================================
+   DRIVE IMPORT MODAL
+============================================================ */
+function DriveImportModal({ allEntities, onClose, onDone, showToast }) {
+  const [folderUrl, setFolderUrl] = useState(
+    () => window.localStorage.getItem('drive:folderUrl') || ''
+  );
+  const [step, setStep] = useState('input'); // input | loading | preview | importing
+  const [rows, setRows] = useState([]);
+  const [error, setError] = useState('');
+
+  function extractFolderId(url) {
+    const s = url.trim();
+    const m1 = s.match(/\/folders\/([a-zA-Z0-9_-]+)/);
+    if (m1) return m1[1];
+    const m2 = s.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+    if (m2) return m2[1];
+    if (/^[a-zA-Z0-9_-]{20,}$/.test(s)) return s;
+    return null;
+  }
+
+  function parseFileName(name) {
+    const clean = name.replace(/\.[^/.]+$/, ''); // remove extensão
+    const m = clean.match(/^(.+?)\s+(\d{1,2})\/(\d{1,2})$/);
+    if (!m) return null;
+    const dirName = m[1].trim();
+    const day = parseInt(m[2], 10);
+    const month = parseInt(m[3], 10);
+    if (day < 1 || day > 31 || month < 1 || month > 12) return null;
+    const year = new Date().getFullYear();
+    const date = `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    return { dirName, date };
+  }
+
+  function matchEntity(dirName) {
+    const lower = dirName.toLowerCase().trim();
+    // 1. Nome completo exato
+    let e = allEntities.find(en => en.name.toLowerCase() === lower);
+    if (e) return e;
+    // 2. Primeiro nome da entidade == nome parseado
+    e = allEntities.find(en => en.name.toLowerCase().split(' ')[0] === lower);
+    if (e) return e;
+    // 3. Nome parseado começa com o primeiro nome da entidade
+    e = allEntities.find(en => lower.startsWith(en.name.toLowerCase().split(' ')[0]));
+    if (e) return e;
+    return null;
+  }
+
+  async function getAccessToken() {
+    return new Promise((resolve, reject) => {
+      if (!window.google?.accounts?.oauth2) {
+        reject(new Error('Google Identity Services ainda não carregou. Aguarde um instante e tente de novo.'));
+        return;
+      }
+      const client = window.google.accounts.oauth2.initTokenClient({
+        client_id: GOOGLE_CLIENT_ID,
+        scope: DRIVE_SCOPE,
+        callback: (resp) => {
+          if (resp.error) reject(new Error(resp.error_description || resp.error));
+          else resolve(resp.access_token);
+        },
+      });
+      client.requestAccessToken({ prompt: '' });
+    });
+  }
+
+  async function handleFetch() {
+    const folderId = extractFolderId(folderUrl);
+    if (!folderId) { setError('URL da pasta inválida. Cole o link completo do Google Drive.'); return; }
+    window.localStorage.setItem('drive:folderUrl', folderUrl);
+    setError('');
+    setStep('loading');
+    let token;
+    try {
+      token = await getAccessToken();
+    } catch (err) {
+      setError(err.message);
+      setStep('input');
+      return;
+    }
+    try {
+      const q = encodeURIComponent(`'${folderId}' in parents and trashed=false`);
+      const fields = encodeURIComponent('files(id,name,webViewLink,mimeType,createdTime)');
+      const resp = await fetch(
+        `https://www.googleapis.com/drive/v3/files?q=${q}&fields=${fields}&pageSize=200&orderBy=name`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data.error?.message || 'Erro ao acessar a pasta');
+      const files = (data.files || []);
+      const parsed = files.map(f => {
+        const p = parseFileName(f.name);
+        const entity = p ? matchEntity(p.dirName) : null;
+        return { file: f, dirName: p?.dirName || null, date: p?.date || null, entity, selected: !!(entity && p) };
+      });
+      setRows(parsed);
+      setStep('preview');
+    } catch (err) {
+      setError(err.message);
+      setStep('input');
+    }
+  }
+
+  async function handleImport() {
+    const toImport = rows.filter(r => r.selected && r.entity);
+    if (!toImport.length) { showToast('error', 'Nada selecionado'); return; }
+    setStep('importing');
+    const byEntity = {};
+    for (const r of toImport) {
+      if (!byEntity[r.entity.id]) byEntity[r.entity.id] = [];
+      byEntity[r.entity.id].push(r);
+    }
+    let total = 0;
+    for (const [eid, items] of Object.entries(byEntity)) {
+      const existing = await storage.getJSON(K.videos(eid), []);
+      const existingLinks = new Set(existing.map(v => v.driveLink).filter(Boolean));
+      const newVideos = items
+        .filter(r => !existingLinks.has(r.file.webViewLink))
+        .map(r => ({
+          id: uid(),
+          title: r.file.name.replace(/\.[^/.]+$/, ''),
+          description: '',
+          status: 'para-postar',
+          driveLink: r.file.webViewLink,
+          scheduledDate: r.date,
+          thumbKey: null,
+          createdAt: Date.now(),
+        }));
+      if (newVideos.length) {
+        await storage.set(K.videos(eid), [...newVideos, ...existing]);
+        total += newVideos.length;
+      }
+    }
+    showToast('success', `${total} vídeo${total !== 1 ? 's' : ''} importado${total !== 1 ? 's' : ''}`);
+    onDone();
+  }
+
+  function toggleRow(idx) {
+    setRows(r => r.map((row, i) => i === idx ? { ...row, selected: !row.selected } : row));
+  }
+
+  const selectedCount = rows.filter(r => r.selected).length;
+
+  return (
+    <div className="modal-backdrop" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 520 }}>
+
+        {/* Header */}
+        <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--ink-border-soft)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 15 }}>Importar do Google Drive</div>
+            <div style={{ fontSize: 12, color: 'var(--mist-dim)', marginTop: 2 }}>Detecta automaticamente diretor e data pelo nome do arquivo</div>
+          </div>
+          <button className="btn-icon" onClick={onClose}><X size={16} /></button>
+        </div>
+
+        {/* Step: input */}
+        {step === 'input' && (
+          <div style={{ padding: '20px 20px 24px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div style={{ background: 'rgba(1,102,252,0.07)', border: '1px solid rgba(1,102,252,0.18)', borderRadius: 10, padding: '12px 14px', fontSize: 12.5, color: 'var(--mist-dim)', lineHeight: 1.55 }}>
+              Nomeie os arquivos como{' '}
+              <span style={{ color: COLORS.brandCyan, fontFamily: 'var(--mono)', fontWeight: 600 }}>Nome DD/MM</span>
+              {' '}para que o sistema identifique o diretor e a data automaticamente.{' '}
+              <span style={{ color: 'var(--mist-muted)' }}>Ex: <code style={{ fontFamily: 'var(--mono)' }}>Walter 25/05.mp4</code>, <code style={{ fontFamily: 'var(--mono)' }}>Rogério 12/06</code></span>
+            </div>
+            <div>
+              <div style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--mist-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 7 }}>Link da pasta do Drive</div>
+              <input
+                style={{ width: '100%', background: 'rgba(255,255,255,0.04)', border: '1px solid var(--ink-border)', borderRadius: 10, padding: '11px 13px', color: 'var(--mist)', fontSize: 13.5, outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }}
+                placeholder="https://drive.google.com/drive/folders/..."
+                value={folderUrl}
+                onChange={e => setFolderUrl(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleFetch()}
+                autoFocus
+              />
+            </div>
+            {error && <div style={{ fontSize: 12.5, color: '#f56565', background: 'rgba(245,101,101,0.08)', padding: '8px 12px', borderRadius: 8 }}>{error}</div>}
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button className="btn" onClick={onClose}>Cancelar</button>
+              <button className="btn btn-primary" onClick={handleFetch} disabled={!folderUrl.trim()}>
+                <LinkIcon size={14} /> Conectar ao Drive
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Step: loading */}
+        {(step === 'loading' || step === 'importing') && (
+          <div style={{ padding: 56, textAlign: 'center', color: 'var(--mist-dim)', fontSize: 13 }}>
+            <div style={{ width: 28, height: 28, border: '3px solid var(--ink-border)', borderTopColor: COLORS.brandBlue, borderRadius: '50%', animation: 'spin 0.7s linear infinite', margin: '0 auto 16px' }} />
+            {step === 'loading' ? 'Listando arquivos do Drive…' : 'Importando vídeos…'}
+          </div>
+        )}
+
+        {/* Step: preview */}
+        {step === 'preview' && (
+          <>
+            <div style={{ padding: '10px 20px', borderBottom: '1px solid var(--ink-border-soft)', fontSize: 12.5, color: 'var(--mist-dim)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span>{rows.length} arquivo{rows.length !== 1 ? 's' : ''} encontrado{rows.length !== 1 ? 's' : ''}</span>
+              <span style={{ color: selectedCount ? COLORS.brandCyan : 'var(--mist-muted)' }}>{selectedCount} selecionado{selectedCount !== 1 ? 's' : ''}</span>
+            </div>
+            <div style={{ maxHeight: 320, overflowY: 'auto' }}>
+              {rows.length === 0 ? (
+                <div style={{ padding: 36, textAlign: 'center', color: 'var(--mist-muted)', fontSize: 13 }}>
+                  Pasta vazia ou nenhum arquivo no formato <code style={{ fontFamily: 'var(--mono)' }}>Nome DD/MM</code>
+                </div>
+              ) : rows.map((r, i) => (
+                <div
+                  key={r.file.id}
+                  onClick={() => r.entity && toggleRow(i)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 12, padding: '10px 20px',
+                    background: r.selected ? 'rgba(1,102,252,0.06)' : 'transparent',
+                    borderBottom: '1px solid var(--ink-border-soft)',
+                    cursor: r.entity ? 'pointer' : 'not-allowed',
+                    opacity: r.entity ? 1 : 0.4,
+                    transition: 'background 0.15s',
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={r.selected}
+                    disabled={!r.entity}
+                    onChange={() => toggleRow(i)}
+                    onClick={e => e.stopPropagation()}
+                    style={{ accentColor: '#0166fc', flexShrink: 0, width: 15, height: 15 }}
+                  />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--mist)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {r.file.name}
+                    </div>
+                    <div style={{ fontSize: 11.5, color: 'var(--mist-dim)', marginTop: 2 }}>
+                      {r.entity
+                        ? <><span style={{ color: COLORS.brandCyan }}>{r.entity.name}</span> · {r.date ? parseLocalDate(r.date).toLocaleDateString('pt-BR') : '—'}</>
+                        : 'Nome não reconhecido — não corresponde a nenhum diretor/empresa'
+                      }
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={{ padding: '14px 20px', borderTop: '1px solid var(--ink-border-soft)', display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button className="btn" onClick={() => { setStep('input'); setError(''); }}>Voltar</button>
+              <button className="btn btn-primary" onClick={handleImport} disabled={selectedCount === 0}>
+                <Download size={14} /> Importar {selectedCount > 0 ? `${selectedCount} vídeo${selectedCount !== 1 ? 's' : ''}` : ''}
+              </button>
+            </div>
+          </>
+        )}
+
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
    VIDEOS TAB
 ============================================================ */
-function VideosTab({ entityId, role, showToast }) {
+function VideosTab({ entityId, role, showToast, allEntities }) {
   const [items, setItems] = useState([]);
   const [filter, setFilter] = useState('all');
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [loading, setLoading] = useState(true);
   const [thumbCache, setThumbCache] = useState({});
+  const [driveOpen, setDriveOpen] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
 
   const canEdit = role.canAll || role.canVideos;
 
@@ -1933,7 +2195,7 @@ function VideosTab({ entityId, role, showToast }) {
       setThumbCache(cache);
       setLoading(false);
     })();
-  }, [entityId]);
+  }, [entityId, reloadKey]);
 
   async function saveItems(newItems) {
     setItems(newItems);
@@ -2001,9 +2263,14 @@ function VideosTab({ entityId, role, showToast }) {
           ))}
         </div>
         {canEdit && (
-          <button className="btn btn-primary" onClick={() => { setEditing(null); setModalOpen(true); }}>
-            <Plus size={15} /> Novo vídeo
-          </button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="btn" onClick={() => setDriveOpen(true)} title="Importar vídeos de uma pasta do Google Drive">
+              <Download size={15} /> Importar do Drive
+            </button>
+            <button className="btn btn-primary" onClick={() => { setEditing(null); setModalOpen(true); }}>
+              <Plus size={15} /> Novo vídeo
+            </button>
+          </div>
         )}
       </div>
 
@@ -2106,6 +2373,14 @@ function VideosTab({ entityId, role, showToast }) {
           onClose={() => { setModalOpen(false); setEditing(null); }}
           onSave={handleSave}
           existingThumb={editing?.thumbKey ? thumbCache[editing.thumbKey] : null}
+          showToast={showToast}
+        />
+      )}
+      {driveOpen && (
+        <DriveImportModal
+          allEntities={allEntities || []}
+          onClose={() => setDriveOpen(false)}
+          onDone={() => { setDriveOpen(false); setReloadKey(k => k + 1); }}
           showToast={showToast}
         />
       )}
@@ -2844,7 +3119,7 @@ export default function App() {
                 <EntityHeader entity={currentEntity} activeTab={activeTab} setActiveTab={setActiveTab} tabs={tabs} />
                 {activeTab === 'roteiros' && <RoteirosTab entityId={currentEntity.id} role={role} showToast={showToast} />}
                 {activeTab === 'estaticos' && <EstaticosTab entityId={currentEntity.id} role={role} showToast={showToast} />}
-                {activeTab === 'videos' && <VideosTab entityId={currentEntity.id} role={role} showToast={showToast} />}
+                {activeTab === 'videos' && <VideosTab entityId={currentEntity.id} role={role} showToast={showToast} allEntities={[...entities.directors, entities.group, ...entities.companies]} />}
                 {activeTab === 'cronograma' && <CronogramaTab entity={currentEntity} role={role} showToast={showToast} />}
                 {activeTab === 'eventos' && <EventosTab entityId={currentEntity.id} role={role} showToast={showToast} />}
               </div>
