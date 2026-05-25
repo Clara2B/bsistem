@@ -2132,18 +2132,22 @@ function DriveImportModal({ allEntities, onClose, onDone, showToast }) {
   async function getAccessToken() {
     return new Promise((resolve, reject) => {
       if (!window.google?.accounts?.oauth2) {
-        reject(new Error('Google Identity Services ainda não carregou. Aguarde um instante e tente de novo.'));
+        reject(new Error('Google Identity Services ainda não carregou. Recarregue a página e tente de novo.'));
         return;
       }
+      const timer = setTimeout(() => {
+        reject(new Error('O popup do Google não abriu. Permita popups para este site na barra do navegador e tente novamente.'));
+      }, 45000);
       const client = window.google.accounts.oauth2.initTokenClient({
         client_id: GOOGLE_CLIENT_ID,
         scope: DRIVE_SCOPE,
         callback: (resp) => {
+          clearTimeout(timer);
           if (resp.error) reject(new Error(resp.error_description || resp.error));
           else resolve(resp.access_token);
         },
       });
-      client.requestAccessToken({ prompt: '' });
+      client.requestAccessToken();
     });
   }
 
@@ -2153,10 +2157,8 @@ function DriveImportModal({ allEntities, onClose, onDone, showToast }) {
     window.localStorage.setItem('drive:folderUrl', folderUrl);
     setError('');
     setStep('loading');
-    let token;
-    try { token = await getAccessToken(); }
-    catch (err) { setError(err.message); setStep('input'); return; }
     try {
+      const token = await getAccessToken();
       const q = encodeURIComponent(`'${folderId}' in parents and trashed=false`);
       const fields = encodeURIComponent('files(id,name,webViewLink,mimeType,createdTime)');
       const resp = await fetch(
@@ -2167,9 +2169,13 @@ function DriveImportModal({ allEntities, onClose, onDone, showToast }) {
       if (!resp.ok) throw new Error(data.error?.message || 'Erro ao acessar a pasta');
       const files = (data.files || []);
       const parsed = files.map(f => {
-        const p = parseFileName(f.name);
-        const entity = p ? matchEntity(p.dirName) : null;
-        return { file: f, dirName: p?.dirName || null, date: p?.date || null, entity, selected: !!(entity && p) };
+        try {
+          const p = parseFileName(f.name);
+          const entity = p ? matchEntity(p.dirName) : null;
+          return { file: f, dirName: p?.dirName || null, date: p?.date || null, entity, selected: !!(entity && p) };
+        } catch (_) {
+          return { file: f, dirName: null, date: null, entity: null, selected: false };
+        }
       });
       setRows(parsed);
       setStep('preview');
@@ -2257,9 +2263,16 @@ function DriveImportModal({ allEntities, onClose, onDone, showToast }) {
         )}
 
         {(step === 'loading' || step === 'importing') && (
-          <div style={{ padding: 56, textAlign: 'center', color: 'var(--mist-dim)', fontSize: 13 }}>
+          <div style={{ padding: '40px 24px 48px', textAlign: 'center', color: 'var(--mist-dim)', fontSize: 13 }}>
             <div style={{ width: 28, height: 28, border: '3px solid var(--ink-border)', borderTopColor: COLORS.brandBlue, borderRadius: '50%', animation: 'spin 0.7s linear infinite', margin: '0 auto 16px' }} />
-            {step === 'loading' ? 'Listando arquivos do Drive…' : 'Importando vídeos…'}
+            <div style={{ fontWeight: 500, color: 'var(--mist)', marginBottom: 8 }}>
+              {step === 'loading' ? 'Aguardando autorização do Google…' : 'Importando vídeos…'}
+            </div>
+            {step === 'loading' && (
+              <div style={{ fontSize: 12, color: 'var(--mist-muted)', lineHeight: 1.6, maxWidth: 300, margin: '0 auto' }}>
+                Um popup do Google deve ter aberto. Se não aparecer, verifique se popups estão <strong style={{ color: 'var(--mist-dim)' }}>permitidos</strong> para este site na barra do navegador.
+              </div>
+            )}
           </div>
         )}
 
