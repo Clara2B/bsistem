@@ -154,6 +154,21 @@ function downloadBase64(base64, filename) {
 }
 function uid() { return Math.random().toString(36).slice(2, 10); }
 
+// Extrai o FILE_ID de qualquer formato de link do Google Drive
+// e devolve a URL direta de download (ou null se não for Drive).
+function getDriveDownloadUrl(url) {
+  if (!url) return null;
+  try {
+    // /file/d/FILE_ID/view  ou  /file/d/FILE_ID/preview
+    const m1 = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+    if (m1) return `https://drive.usercontent.google.com/download?id=${m1[1]}&export=download&authuser=0`;
+    // ?id=FILE_ID  ou  &id=FILE_ID  (ex: /open?id=... ou /uc?id=...)
+    const m2 = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+    if (m2) return `https://drive.usercontent.google.com/download?id=${m2[1]}&export=download&authuser=0`;
+  } catch (_) {}
+  return null;
+}
+
 // Faz parse de 'YYYY-MM-DD' (ou ISO string legada) como horário LOCAL,
 // evitando o bug de fuso que faz o dia aparecer como D-1.
 function parseLocalDate(str) {
@@ -2050,7 +2065,18 @@ function VideosTab({ entityId, role, showToast }) {
                   <div style={{ fontSize: 12.5, color: 'var(--mist-dim)', lineHeight: 1.45 }}>{item.description}</div>
                 )}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto', paddingTop: 6 }}>
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                    {item.driveLink && getDriveDownloadUrl(item.driveLink) && (
+                      <a
+                        href={getDriveDownloadUrl(item.driveLink)}
+                        target="_blank" rel="noopener noreferrer"
+                        className="btn btn-primary"
+                        style={{ padding: '4px 9px', fontSize: 11.5, textDecoration: 'none' }}
+                        title="Baixar vídeo diretamente do Google Drive"
+                      >
+                        <Download size={11} /> Baixar
+                      </a>
+                    )}
                     {item.driveLink && (
                       <a href={item.driveLink} target="_blank" rel="noopener noreferrer" className="btn" style={{ padding: '4px 9px', fontSize: 11.5, textDecoration: 'none' }}>
                         <LinkIcon size={11} /> Abrir
