@@ -597,6 +597,22 @@ function GlobalStyles({ theme = 'dark' }) {
         box-shadow: 0 1px 0 var(--ink-border), 0 1px 4px rgba(0,0,0,0.3);
       }
 
+      /* ── MAIN NAVIGATION TABS ── */
+      .main-nav-group { display: inline-flex; gap: 2px; }
+      .main-nav-tab {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 7px 15px; border-radius: 8px;
+        font-size: 13px; font-weight: 500;
+        color: var(--mist-dim); background: transparent; border: none;
+        cursor: pointer; transition: all .15s; letter-spacing: -0.005em;
+        white-space: nowrap;
+      }
+      .main-nav-tab:hover { color: var(--mist); background: var(--ink-soft); }
+      .main-nav-tab.active {
+        background: linear-gradient(90deg, #0166fc 0%, #009bed 55%, #1de4f0 100%);
+        color: #fff; font-weight: 600;
+      }
+
       .empty {
         display: flex; flex-direction: column; align-items: center; justify-content: center;
         padding: 80px 24px;
@@ -1072,7 +1088,7 @@ function LoginScreen({ onLogin }) {
 /* ============================================================
    HEADER
 ============================================================ */
-function Header({ section, setSection, user, onLogout, onMenuToggle, theme, onToggleTheme }) {
+function Header({ mainSection, setMainSection, user, onLogout, onMenuToggle, theme, onToggleTheme }) {
   return (
     <header style={{
       position: 'relative',
@@ -1101,14 +1117,22 @@ function Header({ section, setSection, user, onLogout, onMenuToggle, theme, onTo
         </div>
       </div>
 
-      <div className="section-pill-group header-section-pills">
-        <button className={`section-pill ${section === 'diretoria' ? 'active' : ''}`} onClick={() => setSection('diretoria')}>
-          <Users size={14} /> Diretoria
-        </button>
-        <button className={`section-pill ${section === 'empresas' ? 'active' : ''}`} onClick={() => setSection('empresas')}>
-          <Building2 size={14} /> Empresas
-        </button>
-      </div>
+      <nav className="main-nav-group header-section-pills">
+        {[
+          { id: 'cronograma', label: 'Cronograma', Icon: Calendar },
+          { id: 'diretoria',  label: 'Diretoria',  Icon: Users },
+          { id: 'bboth',      label: 'B.BOTH',     Icon: Sparkles },
+          { id: 'clientes',   label: 'Clientes',   Icon: Building2 },
+        ].map(({ id, label, Icon }) => (
+          <button
+            key={id}
+            className={`main-nav-tab ${mainSection === id ? 'active' : ''}`}
+            onClick={() => setMainSection(id)}
+          >
+            <Icon size={14} /> {label}
+          </button>
+        ))}
+      </nav>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
         <button
@@ -1162,7 +1186,7 @@ function BBothLogo({ height = 28, withTagline = false }) {
 /* ============================================================
    SIDEBAR
 ============================================================ */
-function Sidebar({ section, setSection, entities, currentId, setCurrentId, onAddCompany, onRemoveCompany, role, mobileOpen, onClose }) {
+function Sidebar({ section, setSection, entities, currentId, setCurrentId, onAddCompany, onRemoveCompany, role, mobileOpen, onClose, mainSection, setMainSection }) {
   const directors = entities.directors || [];
   const group = entities.group || INITIAL_GROUP;
   const companies = entities.companies || [];
@@ -1184,16 +1208,25 @@ function Sidebar({ section, setSection, entities, currentId, setCurrentId, onAdd
         position: 'relative',
         zIndex: 1,
       }}>
-        {/* Pills de seção — só aparecem no mobile via CSS */}
+        {/* Nav principal — aparece no mobile via CSS */}
         <div className="mobile-section-pills" style={{ display: 'none', marginBottom: 16, borderBottom: '1px solid var(--ink-border-soft)', paddingBottom: 14 }}>
-          <div className="section-pill-group" style={{ width: '100%', justifyContent: 'center' }}>
-            <button className={`section-pill ${section === 'diretoria' ? 'active' : ''}`} style={{ flex: 1, justifyContent: 'center' }} onClick={() => { setSection('diretoria'); }}>
-              <Users size={14} /> Diretoria
-            </button>
-            <button className={`section-pill ${section === 'empresas' ? 'active' : ''}`} style={{ flex: 1, justifyContent: 'center' }} onClick={() => { setSection('empresas'); }}>
-              <Building2 size={14} /> Empresas
-            </button>
-          </div>
+          <nav className="main-nav-group" style={{ width: '100%', flexWrap: 'wrap', justifyContent: 'center', gap: 4 }}>
+            {[
+              { id: 'cronograma', label: 'Cronograma', Icon: Calendar },
+              { id: 'diretoria',  label: 'Diretoria',  Icon: Users },
+              { id: 'bboth',      label: 'B.BOTH',     Icon: Sparkles },
+              { id: 'clientes',   label: 'Clientes',   Icon: Building2 },
+            ].map(({ id, label, Icon }) => (
+              <button
+                key={id}
+                className={`main-nav-tab ${mainSection === id ? 'active' : ''}`}
+                style={{ fontSize: 12, padding: '6px 12px' }}
+                onClick={() => { setMainSection(id); onClose && onClose(); }}
+              >
+                <Icon size={13} /> {label}
+              </button>
+            ))}
+          </nav>
         </div>
       {section === 'diretoria' && (
         <>
@@ -3190,6 +3223,41 @@ function AddCompanyModal({ onClose, onSave, showToast, existingIds }) {
 }
 
 /* ============================================================
+   CRONOGRAMA VIEW — iframe do cronograma mensal
+============================================================ */
+function CronogramaView() {
+  return (
+    <iframe
+      src="cronograma_junho_2026.html"
+      style={{ flex: 1, border: 'none', width: '100%', minHeight: 'calc(100vh - 57px)', display: 'block' }}
+      title="Cronograma de Conteúdo — Junho 2026"
+    />
+  );
+}
+
+/* ============================================================
+   B.BOTH VIEW — placeholder para conteúdo da agência
+============================================================ */
+function BBothView() {
+  return (
+    <div style={{
+      flex: 1, display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center',
+      gap: 20, padding: 60, minHeight: 'calc(100vh - 57px)',
+    }}>
+      <BBothLogo height={72} withTagline />
+      <div style={{
+        marginTop: 8, fontSize: 13, color: 'var(--mist-dim)',
+        textAlign: 'center', maxWidth: 320, lineHeight: 1.6,
+      }}>
+        Área reservada para gestão de conteúdo da própria agência B.BOTH.
+        <br />Em breve.
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
    MAIN APP
 ============================================================ */
 export default function App() {
@@ -3207,7 +3275,22 @@ export default function App() {
 
   const [user, setUser] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
-  const [section, setSection] = useState('diretoria');
+  const [mainSection, setMainSectionRaw] = useState(() => {
+    try { return localStorage.getItem('bboth:mainSection') || 'diretoria'; } catch { return 'diretoria'; }
+  });
+  const [section, setSection] = useState(() => {
+    try {
+      const ms = localStorage.getItem('bboth:mainSection') || 'diretoria';
+      return ms === 'clientes' ? 'empresas' : 'diretoria';
+    } catch { return 'diretoria'; }
+  });
+
+  function handleMainSectionChange(ms) {
+    setMainSectionRaw(ms);
+    try { localStorage.setItem('bboth:mainSection', ms); } catch {}
+    if (ms === 'clientes') setSection('empresas');
+    if (ms === 'diretoria') setSection('diretoria');
+  }
   const [entities, setEntities] = useState({
     directors: INITIAL_DIRECTORS,
     group: INITIAL_GROUP,
@@ -3383,7 +3466,10 @@ export default function App() {
     <div className="app-root">
       <GlobalStyles theme={theme} />
       <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-        <Header section={section} setSection={setSection} user={user} onLogout={handleLogout} onMenuToggle={() => setSidebarOpen(o => !o)} theme={theme} onToggleTheme={toggleTheme} />
+        <Header mainSection={mainSection} setMainSection={handleMainSectionChange} user={user} onLogout={handleLogout} onMenuToggle={() => setSidebarOpen(o => !o)} theme={theme} onToggleTheme={toggleTheme} />
+        {mainSection === 'cronograma' && <CronogramaView />}
+        {mainSection === 'bboth' && <BBothView />}
+        {(mainSection === 'diretoria' || mainSection === 'clientes') && (
         <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
           <Sidebar
             section={section}
@@ -3396,6 +3482,8 @@ export default function App() {
             role={role}
             mobileOpen={sidebarOpen}
             onClose={() => setSidebarOpen(false)}
+            mainSection={mainSection}
+            setMainSection={handleMainSectionChange}
           />
           <main style={{ flex: 1, overflowY: 'auto', background: 'var(--ink-deep)' }}>
             {currentEntity ? (
@@ -3416,6 +3504,7 @@ export default function App() {
             )}
           </main>
         </div>
+        )}
       </div>
       {addCompanyOpen && (
         <AddCompanyModal

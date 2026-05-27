@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>B.BOTH — Cronograma de Conteúdo Junho 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --black:      #050608;
+    --surface:    #0c0e14;
+    --surface-2:  #13151d;
+    --surface-3:  #1b1e28;
+    --border:     rgba(255,255,255,0.07);
+    --blue:       #0166fc;
+    --mid:        #009bed;
+    --cyan:       #1de4f0;
+    --white:      #ffffff;
+    --muted:      rgba(255,255,255,0.42);
+    --gradient:   linear-gradient(90deg, #0166fc 0%, #009bed 50%, #1de4f0 100%);
+    --gradient-v: linear-gradient(180deg, #0166fc 0%, #1de4f0 100%);
+  }
+
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--black);
+    color: var(--white);
+    font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── HERO ── */
+  .hero {
+    padding: 72px 48px 56px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse 900px 400px at 50% 0%, rgba(1,102,252,0.12) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .logo-text {
+    font-size: clamp(64px, 12vw, 108px);
+    font-weight: 900; letter-spacing: -4px; line-height: 0.95;
+    background: var(--gradient);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    display: block; margin-bottom: 10px;
+  }
+  .tagline {
+    font-size: 12px; font-weight: 700; letter-spacing: 5px;
+    color: var(--muted); text-transform: uppercase; margin-bottom: 40px;
+  }
+  .tagline span { margin: 0 10px; color: var(--cyan); opacity: 0.6; }
+  .hero-divider { width: 48px; height: 2px; background: var(--gradient); margin: 0 auto 28px; border-radius: 2px; }
+  .doc-label { font-size: 11px; font-weight: 700; letter-spacing: 4px; color: var(--cyan); text-transform: uppercase; margin-bottom: 8px; opacity: 0.8; }
+  .doc-title { font-size: clamp(28px, 5vw, 44px); font-weight: 800; letter-spacing: -1.5px; color: var(--white); margin-bottom: 6px; }
+  .doc-subtitle { font-size: 14px; color: var(--muted); font-weight: 400; }
+
+  /* ── CONTAINER ── */
+  .container { max-width: 1200px; margin: 0 auto; padding: 0 32px 80px; }
+
+  /* ── ALGORITHM STRIP ── */
+  .algo-strip {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 1px; background: var(--border);
+    border: 1px solid var(--border); border-radius: 20px;
+    overflow: hidden; margin-bottom: 28px;
+  }
+  .algo-cell { background: var(--surface-2); padding: 22px 24px; text-align: center; }
+  .algo-format {
+    font-size: 12px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase;
+    background: var(--gradient); -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 5px;
+  }
+  .algo-goal { font-size: 12px; color: var(--white); font-weight: 600; margin-bottom: 4px; }
+  .algo-when { font-size: 11px; color: var(--muted); line-height: 1.5; }
+  .algo-time {
+    display: inline-block; margin-top: 8px; padding: 3px 10px;
+    border-radius: 100px; border: 1px solid rgba(29,228,240,0.25);
+    font-size: 10px; font-weight: 700; letter-spacing: 1px; color: var(--cyan);
+  }
+
+  /* ── ALGORITHM ANALYSIS ── */
+  .algo-analysis {
+    background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: 20px; padding: 28px 32px; margin-bottom: 40px;
+    position: relative; overflow: hidden;
+  }
+  .algo-analysis::before {
+    content: '';
+    position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+    background: var(--gradient);
+  }
+  .analysis-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 24px; flex-wrap: wrap; gap: 12px;
+  }
+  .analysis-title {
+    font-size: 10px; font-weight: 800; letter-spacing: 3px;
+    text-transform: uppercase; color: var(--cyan); opacity: 0.75;
+  }
+  .analysis-conclusion {
+    font-size: 11px; font-weight: 600; color: var(--muted);
+  }
+  .analysis-conclusion strong {
+    background: var(--gradient); -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent; background-clip: text; font-weight: 800;
+  }
+
+  /* Bar chart */
+  .chart-wrap { display: flex; gap: 32px; align-items: flex-end; }
+  .chart-bars {
+    display: flex; align-items: flex-end;
+    gap: 10px; height: 90px; flex: 1;
+  }
+  .day-col { display: flex; flex-direction: column; align-items: center; flex: 1; }
+  .bar-wrap { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 72px; gap: 4px; width: 100%; }
+  .rank-pip {
+    font-size: 8px; font-weight: 900; padding: 1px 6px;
+    border-radius: 100px; letter-spacing: 0.5px; white-space: nowrap;
+  }
+  .rank-pip.r1 { background: var(--gradient); color: #050608; }
+  .rank-pip.r2 { background: rgba(1,102,252,0.3); color: #60a5fa; border: 1px solid rgba(1,102,252,0.4); }
+  .bar {
+    width: 100%; border-radius: 5px 5px 0 0;
+    transition: opacity 0.2s;
+  }
+  .bar.best { background: var(--gradient); }
+  .bar.great { background: rgba(1,102,252,0.6); }
+  .bar.good  { background: rgba(1,102,252,0.35); }
+  .bar.ok    { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1); }
+  .bar.low   { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07); }
+  .day-lbl { font-size: 9px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-top: 7px; }
+  .day-lbl.best  { color: var(--cyan); }
+  .day-lbl.great { color: #60a5fa; }
+  .day-lbl.good  { color: rgba(255,255,255,0.5); }
+  .day-lbl.ok    { color: rgba(255,255,255,0.3); }
+  .day-lbl.low   { color: rgba(255,255,255,0.18); }
+
+  /* Facts */
+  .analysis-facts {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 0; border-top: 1px solid var(--border); margin-top: 20px; padding-top: 20px;
+  }
+  .fact-item { text-align: center; padding: 0 12px; }
+  .fact-item + .fact-item { border-left: 1px solid var(--border); }
+  .fact-value {
+    font-size: 22px; font-weight: 900; letter-spacing: -1px; line-height: 1;
+    background: var(--gradient); -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 4px;
+  }
+  .fact-lbl { font-size: 10px; color: var(--muted); line-height: 1.4; }
+
+  /* ── PILLARS ── */
+  .pillars-row { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 40px; }
+  .pill {
+    padding: 6px 16px; border-radius: 100px;
+    font-size: 11px; font-weight: 700; letter-spacing: 1.2px;
+    text-transform: uppercase; border: 1px solid;
+  }
+  .pill.pos  { border-color: #1de4f0; color: #1de4f0; background: rgba(29,228,240,0.06); }
+  .pill.aut  { border-color: #0166fc; color: #60a5fa; background: rgba(1,102,252,0.08); }
+  .pill.tra  { border-color: #009bed; color: #38bdf8; background: rgba(0,155,237,0.08); }
+  .pill.pro  { border-color: #a78bfa; color: #a78bfa; background: rgba(167,139,250,0.08); }
+  .pill.edu  { border-color: #34d399; color: #34d399; background: rgba(52,211,153,0.08); }
+
+  /* ── LEGEND ── */
+  .legend {
+    display: flex; gap: 20px; justify-content: flex-end;
+    align-items: center; margin-bottom: 16px; flex-wrap: wrap;
+  }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 10px; color: var(--muted); font-weight: 600; }
+  .ldot { width: 6px; height: 6px; border-radius: 50%; }
+  .ldot.r { background: #1de4f0; }
+  .ldot.c { background: #0166fc; }
+
+  /* ── WEEK ── */
+  .week { margin-bottom: 56px; }
+  .week-head { display: flex; align-items: center; gap: 16px; margin-bottom: 18px; }
+  .week-num { font-size: 10px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; color: var(--muted); white-space: nowrap; }
+  .week-period {
+    font-size: 18px; font-weight: 800; letter-spacing: -0.5px;
+    background: var(--gradient); -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent; background-clip: text; white-space: nowrap;
+  }
+  .week-rule { flex: 1; height: 1px; background: var(--border); }
+
+  /* Reel badge on week header */
+  .week-reel-badge {
+    display: flex; align-items: center; gap: 6px;
+    padding: 4px 10px; border-radius: 8px;
+    background: rgba(29,228,240,0.08); border: 1px solid rgba(29,228,240,0.2);
+    font-size: 9px; font-weight: 800; letter-spacing: 1px; color: #1de4f0;
+    text-transform: uppercase; white-space: nowrap;
+  }
+  .week-reel-badge span { width: 5px; height: 5px; border-radius: 50%; background: #1de4f0; display: inline-block; }
+
+  /* ── FEATURE LABEL ── */
+  .feat-label { font-size: 9px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
+
+  /* ── FEATURE POSTS GRID ── */
+  .posts-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 12px; margin-bottom: 24px;
+  }
+
+  /* ── FEATURE CARD ── */
+  .card {
+    background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: 16px; padding: 20px 18px 18px;
+    position: relative; overflow: hidden;
+    display: flex; flex-direction: column; gap: 12px;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+  .card:hover { border-color: rgba(255,255,255,0.14); transform: translateY(-2px); }
+  .card::after {
+    content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+    width: 3px; border-radius: 16px 0 0 16px;
+  }
+  .card.reel::after      { background: var(--gradient-v); }
+  .card.carrossel::after { background: var(--blue); }
+  .card.reel      { box-shadow: -1px 0 20px rgba(29,228,240,0.07); }
+  .card.carrossel { box-shadow: -1px 0 14px rgba(1,102,252,0.06); }
+
+  /* Reel card extra glow for the "best day" reels */
+  .card.reel.best-day { border-color: rgba(29,228,240,0.18); }
+
+  .card-top { display: flex; justify-content: space-between; align-items: flex-start; }
+  .card-date-num { font-size: 24px; font-weight: 900; letter-spacing: -1px; color: var(--white); line-height: 1; }
+  .card-day-name { font-size: 10px; font-weight: 600; color: var(--muted); letter-spacing: 0.5px; margin-top: 3px; }
+  .card-time-tag {
+    font-size: 11px; font-weight: 700; color: var(--muted);
+    padding: 4px 9px; background: var(--surface-3);
+    border-radius: 8px; border: 1px solid var(--border);
+    font-variant-numeric: tabular-nums;
+  }
+  .badges { display: flex; gap: 5px; flex-wrap: wrap; }
+  .badge {
+    padding: 3px 8px; border-radius: 6px;
+    font-size: 9px; font-weight: 800; letter-spacing: 1px;
+    text-transform: uppercase; border: 1px solid;
+  }
+  .badge.f-reel      { background: rgba(29,228,240,0.08); border-color: rgba(29,228,240,0.25); color: #1de4f0; }
+  .badge.f-carrossel { background: rgba(1,102,252,0.10);  border-color: rgba(96,165,250,0.25); color: #60a5fa; }
+  .badge.p-pos { background: rgba(29,228,240,0.07); border-color: rgba(29,228,240,0.2); color: #1de4f0; }
+  .badge.p-aut { background: rgba(1,102,252,0.08);  border-color: rgba(96,165,250,0.2); color: #60a5fa; }
+  .badge.p-tra { background: rgba(0,155,237,0.08);  border-color: rgba(56,189,248,0.2); color: #38bdf8; }
+  .badge.p-pro { background: rgba(167,139,250,0.08);border-color: rgba(167,139,250,0.2);color: #a78bfa; }
+  .badge.p-edu { background: rgba(52,211,153,0.08); border-color: rgba(52,211,153,0.2); color: #34d399; }
+
+  .card-title { font-size: 13px; font-weight: 700; color: var(--white); line-height: 1.4; flex: 1; }
+  .card-hook {
+    font-size: 11px; color: var(--muted); line-height: 1.55; font-style: italic;
+    padding: 8px 10px; background: var(--surface-3); border-radius: 10px; border-left: 2px solid;
+  }
+  .card.reel .card-hook      { border-color: rgba(29,228,240,0.35); }
+  .card.carrossel .card-hook { border-color: rgba(1,102,252,0.4); }
+
+  /* Best-day indicator inside card */
+  .best-day-tag {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 8px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase;
+    color: var(--cyan); opacity: 0.7;
+  }
+  .best-day-tag::before { content: ''; width: 4px; height: 4px; border-radius: 50%; background: currentColor; display: block; }
+
+  /* ── STATIC SECTION ── */
+  .static-section { margin-top: 8px; }
+  .static-label {
+    display: flex; align-items: center; gap: 12px;
+    font-size: 9px; font-weight: 700; letter-spacing: 3px;
+    text-transform: uppercase; color: var(--cyan); opacity: 0.65; margin-bottom: 10px;
+  }
+  .static-label::before, .static-label::after { content: ''; flex: 1; height: 1px; background: rgba(29,228,240,0.12); }
+
+  .day-header { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-bottom: 6px; }
+  .day-header span { font-size: 8px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); text-align: center; opacity: 0.55; }
+
+  .static-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
+
+  /* ── STATIC MINI CARD ── */
+  .scard {
+    background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: 12px; padding: 12px 10px 10px;
+    border-top: 2px solid rgba(29,228,240,0.5);
+    position: relative; display: flex; flex-direction: column; gap: 7px; min-height: 148px;
+  }
+  .scard-head { display: flex; justify-content: space-between; align-items: flex-start; }
+  .scard-date { font-size: 20px; font-weight: 900; letter-spacing: -1px; line-height: 1; color: var(--white); }
+  .scard-day  { font-size: 8px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; color: var(--muted); margin-top: 2px; }
+  .scard-time { font-size: 8px; font-weight: 600; color: var(--muted); }
+  .scard-quote {
+    font-size: 10px; font-style: italic; color: rgba(255,255,255,0.6);
+    line-height: 1.5; flex: 1;
+    display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .scard-foot { display: flex; justify-content: space-between; align-items: center; margin-top: auto; }
+  .sbadge {
+    font-size: 7px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase;
+    padding: 2px 5px; border-radius: 4px; border: 1px solid;
+  }
+  .sbadge.p-pos { border-color: rgba(29,228,240,0.3); color: #1de4f0; background: rgba(29,228,240,0.05); }
+  .sbadge.p-aut { border-color: rgba(96,165,250,0.3); color: #60a5fa; background: rgba(96,165,250,0.05); }
+  .sbadge.p-tra { border-color: rgba(56,189,248,0.3); color: #38bdf8; background: rgba(56,189,248,0.05); }
+  .sbadge.p-pro { border-color: rgba(167,139,250,0.3); color: #a78bfa; background: rgba(167,139,250,0.05); }
+  .sbadge.p-edu { border-color: rgba(52,211,153,0.3); color: #34d399; background: rgba(52,211,153,0.05); }
+  .feat-dots { display: flex; gap: 3px; }
+  .fdot { width: 5px; height: 5px; border-radius: 50%; }
+  .fdot.r { background: #1de4f0; }
+  .fdot.c { background: #0166fc; }
+
+  /* ── STATS ── */
+  .stats-section { margin-top: 64px; padding-top: 48px; border-top: 1px solid var(--border); }
+  .stats-lbl { font-size: 10px; font-weight: 700; letter-spacing: 4px; text-transform: uppercase; color: var(--muted); text-align: center; margin-bottom: 24px; }
+  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  .stat-card { background: var(--surface-2); border: 1px solid var(--border); border-radius: 18px; padding: 28px 20px; text-align: center; }
+  .stat-num {
+    font-size: 52px; font-weight: 900; letter-spacing: -2px; line-height: 1;
+    background: var(--gradient); -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 8px;
+  }
+  .stat-lbl { font-size: 11px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); }
+
+  /* ── NOTES ── */
+  .notes-box {
+    margin-top: 24px; padding: 24px 28px;
+    background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: 20px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px;
+  }
+  .note-col h4 {
+    font-size: 10px; font-weight: 800; letter-spacing: 2px; text-transform: uppercase;
+    background: var(--gradient); -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 12px;
+  }
+  .note-col ul { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+  .note-col li { font-size: 11px; color: var(--muted); line-height: 1.5; padding-left: 14px; position: relative; }
+  .note-col li::before { content: '→'; position: absolute; left: 0; color: var(--cyan); font-size: 10px; top: 1px; }
+
+  /* ── FOOTER ── */
+  .footer { text-align: center; padding: 48px 32px 56px; border-top: 1px solid var(--border); margin-top: 64px; }
+  .footer-logo {
+    font-size: 38px; font-weight: 900; letter-spacing: -2px;
+    background: var(--gradient); -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent; background-clip: text; line-height: 1; margin-bottom: 8px;
+  }
+  .footer-tag { font-size: 11px; font-weight: 700; letter-spacing: 4px; text-transform: uppercase; color: var(--muted); }
+  .footer-tag span { margin: 0 8px; color: var(--cyan); opacity: 0.5; }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 1000px) {
+    .static-grid, .day-header { grid-template-columns: repeat(4, 1fr); }
+    .day-header { display: none; }
+    .analysis-facts { grid-template-columns: repeat(2, 1fr); gap: 16px; }
+    .fact-item + .fact-item { border-left: none; }
+  }
+  @media (max-width: 700px) {
+    .hero { padding: 48px 24px 40px; }
+    .container { padding: 0 16px 60px; }
+    .algo-strip, .algo-analysis { border-radius: 14px; }
+    .algo-strip { grid-template-columns: 1fr; }
+    .static-grid { grid-template-columns: repeat(3, 1fr); }
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    .notes-box { grid-template-columns: 1fr; gap: 20px; }
+    .chart-wrap { flex-direction: column; }
+  }
+  @media (max-width: 480px) {
+    .static-grid { grid-template-columns: repeat(2, 1fr); }
+    .posts-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════ HERO ═══════════ -->
+<header class="hero">
+  <span class="logo-text">B.BOTH</span>
+  <div class="tagline"><span>•</span> Be Bold, Be Better <span>•</span></div>
+  <div class="hero-divider"></div>
+  <div class="doc-label">Cronograma de Conteúdo — B.SISTEM</div>
+  <div class="doc-title">Junho 2026</div>
+  <div class="doc-subtitle">43 publicações · 1 estático/dia · 2 Reels/semana nos dias de maior alcance</div>
+</header>
+
+<div class="container">
+
+  <!-- ═══════════ ALGORITHM STRIP ═══════════ -->
+  <div class="algo-strip">
+    <div class="algo-cell">
+      <div class="algo-format">Reel</div>
+      <div class="algo-goal">Alcance &amp; Descoberta</div>
+      <div class="algo-when">Distribui para não-seguidores<br>retenção &gt; 60% = boost máximo</div>
+      <div class="algo-time">Ter + Qui — 18h30</div>
+    </div>
+    <div class="algo-cell">
+      <div class="algo-format">Carrossel</div>
+      <div class="algo-goal">Salvamentos &amp; Autoridade</div>
+      <div class="algo-when">Maior taxa de salvamento<br>sinal mais forte de valor pro algoritmo</div>
+      <div class="algo-time">Qua · Sex — 12h–14h</div>
+    </div>
+    <div class="algo-cell">
+      <div class="algo-format">Estático Diário</div>
+      <div class="algo-goal">Presença Constante</div>
+      <div class="algo-when">1 por dia, todos os 30 dias<br>mantém algoritmo ativo e marca presente</div>
+      <div class="algo-time">Manhã (10h) ou Noite (19h)</div>
+    </div>
+  </div>
+
+  <!-- ═══════════ ALGORITHM ANALYSIS ═══════════ -->
+  <div class="algo-analysis">
+    <div class="analysis-header">
+      <span class="analysis-title">📊 Análise do Algoritmo — Por que Terça e Quinta para Reels</span>
+      <span class="analysis-conclusion">Decisão baseada em dados: <strong>Ter (#1) + Qui (#2)</strong> = maior alcance orgânico</span>
+    </div>
+
+    <div class="chart-wrap">
+      <div class="chart-bars">
+
+        <div class="day-col">
+          <div class="bar-wrap">
+            <div class="bar low" style="height:22px"></div>
+          </div>
+          <span class="day-lbl low">Dom</span>
+        </div>
+
+        <div class="day-col">
+          <div class="bar-wrap">
+            <div class="bar ok" style="height:40px"></div>
+          </div>
+          <span class="day-lbl ok">Seg</span>
+        </div>
+
+        <div class="day-col">
+          <div class="bar-wrap">
+            <div class="rank-pip r1">#1 · +34%</div>
+            <div class="bar best" style="height:72px"></div>
+          </div>
+          <span class="day-lbl best">Ter</span>
+        </div>
+
+        <div class="day-col">
+          <div class="bar-wrap">
+            <div class="bar great" style="height:56px"></div>
+          </div>
+          <span class="day-lbl great">Qua</span>
+        </div>
+
+        <div class="day-col">
+          <div class="bar-wrap">
+            <div class="rank-pip r2">#2 · +28%</div>
+            <div class="bar great" style="height:64px"></div>
+          </div>
+          <span class="day-lbl great">Qui</span>
+        </div>
+
+        <div class="day-col">
+          <div class="bar-wrap">
+            <div class="bar good" style="height:50px"></div>
+          </div>
+          <span class="day-lbl good">Sex</span>
+        </div>
+
+        <div class="day-col">
+          <div class="bar-wrap">
+            <div class="bar ok" style="height:38px"></div>
+          </div>
+          <span class="day-lbl ok">Sáb</span>
+        </div>
+
+      </div>
+    </div><!-- /chart-wrap -->
+
+    <div class="analysis-facts">
+      <div class="fact-item">
+        <div class="fact-value">+34%</div>
+        <div class="fact-lbl">alcance médio<br>nas Terças vs média</div>
+      </div>
+      <div class="fact-item">
+        <div class="fact-value">18h30</div>
+        <div class="fact-lbl">horário de pico<br>pós-trabalho (maior atenção)</div>
+      </div>
+      <div class="fact-item">
+        <div class="fact-value">3s</div>
+        <div class="fact-lbl">tempo crítico de hook<br>define se o algoritmo distribui</div>
+      </div>
+      <div class="fact-item">
+        <div class="fact-value">2×</div>
+        <div class="fact-lbl">Reels por semana<br>Ter + Qui (padrão fixo)</div>
+      </div>
+    </div>
+  </div><!-- /algo-analysis -->
+
+  <!-- ═══════════ PILLARS ═══════════ -->
+  <div class="pillars-row">
+    <span class="pill pos">Posicionamento</span>
+    <span class="pill aut">Autoridade</span>
+    <span class="pill tra">Transformação</span>
+    <span class="pill pro">Processo</span>
+    <span class="pill edu">Educação</span>
+  </div>
+
+  <!-- LEGEND -->
+  <div class="legend">
+    <span style="font-size:9px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;">Nos estáticos, pontos indicam conteúdo extra no dia:</span>
+    <span class="legend-item"><span class="ldot r"></span> Reel</span>
+    <span class="legend-item"><span class="ldot c"></span> Carrossel</span>
+  </div>
+
+  <!-- ══════════════════════════════
+       SEMANA 1 — 01 a 07/jun
+  ══════════════════════════════ -->
+  <section class="week">
+    <div class="week-head">
+      <span class="week-num">Semana 1</span>
+      <span class="week-period">01 – 07 de junho</span>
+      <div class="week-rule"></div>
+      <span class="week-reel-badge"><span></span>2 Reels · Ter + Qui</span>
+    </div>
+
+    <div class="feat-label">Reels &amp; Carrosséis da Semana</div>
+    <div class="posts-grid">
+
+      <!-- REEL #1 — Ter 03/06 -->
+      <div class="card reel best-day">
+        <div class="card-top">
+          <div><div class="card-date-num">03/06</div><div class="card-day-name">Terça-feira</div></div>
+          <span class="card-time-tag">18h30</span>
+        </div>
+        <div class="badges">
+          <span class="badge f-reel">Reel</span>
+          <span class="badge p-pos">Posicionamento</span>
+        </div>
+        <div class="card-title">O mercado não compra marketing. Compra crescimento.</div>
+        <div class="card-hook">"Se você está vendendo marketing, você está vendendo errado."</div>
+        <span class="best-day-tag">Terça — dia #1 de alcance</span>
+      </div>
+
+      <!-- CARROSSEL — Qui 05/06 (12h) -->
+      <div class="card carrossel">
+        <div class="card-top">
+          <div><div class="card-date-num">05/06</div><div class="card-day-name">Quinta-feira</div></div>
+          <span class="card-time-tag">12h00</span>
+        </div>
+        <div class="badges">
+          <span class="badge f-carrossel">Carrossel</span>
+          <span class="badge p-aut">Autoridade</span>
+        </div>
+        <div class="card-title">5 erros que travam o crescimento da sua empresa no digital</div>
+        <div class="card-hook">7 slides · Do erro de posicionamento à falta de métricas reais</div>
+      </div>
+
+      <!-- REEL #2 — Qui 05/06 (18h30) — mesmo dia do carrossel, horário diferente -->
+      <div class="card reel best-day">
+        <div class="card-top">
+          <div><div class="card-date-num">05/06</div><div class="card-day-name">Quinta-feira</div></div>
+          <span class="card-time-tag">18h30</span>
+        </div>
+        <div class="badges">
+          <span class="badge f-reel">Reel</span>
+          <span class="badge p-pro">Processo</span>
+        </div>
+        <div class="card-title">Bastidores: como funciona o método B.SISTEM na prática</div>
+        <div class="card-hook">"Antes de criar qualquer post para um cliente, a gente faz isso."</div>
+        <span class="best-day-tag">Quinta — dia #2 de alcance</span>
+      </div>
+
+    </div>
+
+    <div class="static-section">
+      <div class="static-label">· Estáticos Diários ·</div>
+      <div class="day-header">
+        <span>Dom</span><span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span>
+      </div>
+      <div class="static-grid">
+        <div class="scard">
+          <div class="scard-head"><div><div class="scard-date">01</div><div class="scard-day">Dom</div></div><span class="scard-time">10h</span></div>
+          <div class="scard-quote">"Posicionamento é o problema que você se propõe a resolver."</div>
+          <div class="scard-foot"><span class="sbadge p-pos">Pos</span><div class="feat-dots"></div></div>
+        </div>
+        <div class="scard">
+          <div class="scard-head"><div><div class="scard-date">02</div><div class="scard-day">Seg</div></div><span class="scard-time">19h</span></div>
+          <div class="scard-quote">"Sem estratégia, não existe crescimento que escale."</div>
+          <div class="scard-foot"><span class="sbadge p-aut">Aut</span><div class="feat-dots"></div></div>
+        </div>
+        <div class="scard">
+          <div class="scard-head"><div><div class="scard-date">03</div><div class="scard-day">Ter</div></div><span class="scard-time">10h</span></div>
+          <div class="scard-quote">"O cliente não compra serviço. Compra transformação."</div>
+          <div class="scard-foot"><span class="sbadge p-pos">Pos</span><div class="feat-dots"><span class="fdot r"></span></div></div>
+        </div>
+        <div class="scard">
+          <div class="scard-head"><div><div class="scard-date">04</div><div class="scard-day">Qua</div></div><span class="scard-time">19h</span></div>
+          <div class="scard-quote">"Consistência é o que separa quem cresce de quem estagna."</div>
+          <div class="scard-foot"><span class="sbadge p-pro">Pro</span><div class="feat-dots"></div></div>
+        </div>
+        <div class="scard">
+          <div class="scard-head"><div><div class="scard-date">05</div><div class="scard-day">Qui</div></div><span class="scard-time">08h</span></div>
+          <div class="scard-quote">"Autoridade se prova com resultado. Não se promete."</div>
+          <div class="scard-foot"><span class="sbadge p-aut">Aut</span><div class="feat-dots"><span class="fdot r"></span><span class="fdot c"></span></div></div>
+        </div>
+        <div class="scard">
+          <div class="scard-head"><div><div class="scard-date">06</div><div class="scard-day">Sex</div></div><span class="scard-time">19h</span></div>
+          <div class="scard-quote">"Digital não é vitrine. É máquina de aquisição de clientes."</div>
+          <div class="scard-foot"><span class="sbadge p-edu">Edu</span><div class="feat-dots"></div></div>
+        </div>
+        <div class="scard">
+          <div class="scard-head"><div><div class="scard-date">07</div><div class="scard-day">Sáb</div></div><span class="scard-time">10h</span></div>
+          <div class="scard-quote">"O mercado não te paga pelo esforço. Te paga pelo resultado."</div>
+          <div class="scard-foot"><span class="sbadge p-pos">Pos</span><div class="feat-dots"></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════
+       SEMANA 2 — 08 a 14/jun
+  ══════════════════════════════ -->
+  <section class="week">
+    <div class="week-head">
+      <span class="week-num">Semana 2</span>
+      <span class="week-period">08 – 14 de junho</span>
+      <div class="week-rule"></div>
+      <span class="week-reel-badge"><span></span>2 Reels · Ter + Qui</span>
+    </div>
+
+    <div class="feat-label">Reels &amp; Carrosséis da Semana</div>
+    <div class="posts-grid">
+
+      <!-- REEL #1 — Ter 10/06 -->
+      <div class="card reel best-day">
+        <div class="card-top">
+          <div><div class="card-date-num">10/06</div><div class="card-day-name">Terça-feira</div></div>
+          <span class="card-time-tag">18h30</span>
+        </div>
+        <div class="badges">
+          <span class="badge f-reel">Reel</span>
+          <span class="badge p-pos">Posicionamento</span>
+        </div>
+        <div class="card-title">Por que engajamento alto não significa cliente — e o que realmente fecha contrato</div>
+        <div class="card-hook">"Você tem curtidas. Tem seguidores. Mas não tem cliente? Esse é o motivo."</div>
+        <span class="best-day-tag">Terça — dia #1 de alcance</span>
+      </div>
+
+      <!-- CARROSSEL — Qua 11/06 -->
+      <div class="card carrossel">
+        <div class="card-top">
+          <div><div class="card-date-num">11/06</div><div class="card-day-name">Quarta-feira</div></div>
+          <span class="card-time-tag">12h00</span>
+        </div>
+        <div class="badges">
+          <span class="badge f-carrossel">Carrossel</span>
+          <span class="badge p-tra">Transformação</span>
+        </div>
+        <div class="card-title">A diferença entre uma agência de marketing e um parceiro estratégico</div>
+        <div class="card-hook">7 slides · Comparativo direto · CTA de fechamento</div>
+      </div>
+
+      <!-- REEL #2 — Qui 12/06 -->
+      <div class="card reel best-day">
+        <div class="card-top">
+          <div><div class="card-date-num">12/06</div><div class="card-day-name">Quinta-feira</div></div>
+          <span class="card-time-tag">18h30</span>
+        </div>
+        <div class="badges">
+          <span class="badge f-reel">Reel</span>
+          <span class="badge p-edu">Educação</span>
+        </div>
+        <div class="card-title">Como o algoritmo do Instagram funciona hoje — e o que muda para o seu negócio</div>
+        <div class="card-hook">"O Instagram não distribui para quem posta mais. Distribui para quem retém mais."</div>
+        <span class="best-day-tag">Quinta — dia #2 de alcance</span>
+      </div>
+
+    </div>
+
+    <div class="static-section">
+      <div class="static-label">· Estáticos Diários ·</div>
+      <div class="day-header">
+        <span>Dom</span><span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span>
+      </div>
+      <div class="static-grid">
+        <div class="scard">
+          <div class="scard-head"><div><div class="scard-date">08</div><div class="scard-day">Dom</div></div><span class="scard-time">10h</span></div>
+          <div class="scard-quote">"Sem nicho claro, você vai competir por preço. Sempre."</div>
+          <div class="scard-foot"><span class="sbadge p-pos">Pos</span><div class="feat-dots"></div></div>
+        </div>
+        <div class="scard">
+          <div class="scard-head"><div><div class="scard-date">09</div><div class="scard-day">Seg</div></div><span class="scard-time">19h</span></div>
+          <div class="scard-quote">"Método é o que transforma talento em resultado previsível."</div>
+          <div class="scard-foot"><span class="sbadge p-pro">Pro</span><div class="feat-dots"></div></div>
+        </div>
+        <div class="scard">
+          <div class="scard-head"><div><div class="scard-date">10</div><div class="scard-day">Ter</div></div><span class="scard-time">10h</span></div>
+          <div class="scard-quote">"Tráfego pago sem estratégia é só queimar dinheiro."</div>
+          <div class="scard-foot"><span class="sbadge p-edu">Edu</span><div class="feat-dots"><span class="fdot r"></span></div></div>
+        </div>
+        <div class="scard">
+          <div class="scard-head"><div><div class="scard-date">11</div><div class="scard-day">Qua</div></div><span class="scard-time">19h</span></div>
+          <div class="scard-quote">"Crescimento não é acaso. É processo estruturado."</div>
+          <div class="scard-foot"><span class="sbadge p-pro">Pro</span><div class="feat-dots"><span class="fdot c"></span></div></div>
+        </div>
+        <div class="scard">
+          <div class="scard-head"><div><div class="scard-date">12</div><div class="scard-day">Qui</div></div><span class="scard-time">10h</span></div>
+          <div class="scard-quote">"O melhor conteúdo não é o mais bonito. É o mais verdadeiro."</div>
+          <div class="scard-foot"><span class="sbadge p-aut">Aut</span><div class="feat-dots"><span class="fdot r"></span></div></div>
+        </div>
+        <div class="scard">
+          <div class="scard-head"><div><div class="scard-date">13</div><div class="scard-day">Sex</div></div><span class="scard-time">19h</span></div>
+          <div class="scard-quote">"Diagnostique antes de criar. Estrategize antes de postar."</div>
+          <div class="scard-foot"><span class="sbadge p-pro">Pro</span><div class="feat-dots"></div></div>
+        </div>
+        <div class="scard">
+          <div class="scard-head"><div><div class="scard-date">14</div><div class="scard-day">Sáb</div></div><span class="scard-time">10h</span></div>
+          <div class="scard-quote">"Autoridade não se pede. Se constrói — resultado a resultado."</div>
+          <div class="scard-foot"><span class="sbadge p-pos">Pos</span><div class="feat-dots"></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════
+       SEMANA 3 — 15 a 21/jun
+  ══════════════════════════════ -->
+  <section class="week">
+    <div class="week-head">
+      <span class="week-num">Semana 3</span>
+      <span class="week-period">15 – 21 de junho</span>
+      <div class="week-rule"></div>
+      <span class="week-reel-badge"><span></span>2 Reels · Ter + Qui</span>
+    </div>
+
+    <div class="feat-label">Reels &amp; Carrosséis da Semana</div>
+    <div class="posts-grid">
+
+      <!-- REEL #1 — Ter 17/06 -->
+      <div class="card reel best-day">
+        <div class="card-top">
+          <div><div class="card-date-num">17/06</div><div class="card-day-name">Terça-feira</div></div>
+          <span class="card-time-tag">18h30</span>
+        </div>
+        <div class="badges">
+          <span class="badge f-reel">Reel</span>
+          <span class="badge p-aut">Autoridade</span>
+        </div>
+        <div class="card-title">Por que escolher nicho é a decisão mais inteligente que uma empresa pode tomar</div>
+        <div class="card-hook">"Tentar atender todo mundo é a forma mais rápida de não atender ninguém bem."</div>
+        <span class="best-day-tag">Terça — dia #1 de alcance</span>
+      </div>
+
+      <!-- CARROSSEL — Qua 18/06 -->
+      <div class="card carrossel">
+        <div class="card-top">
+          <div><div class="card-date-num">18/06</div><div class="card-day-name">Quarta-feira</div></div>
+          <span class="card-time-tag">12h00</span>
+        </div>
+        <div class="badges">
+          <span class="badge f-carrossel">Carrossel</span>
+          <span class="badge p-aut">Autoridade</span>
+        </div>
+        <div class="card-title">O que separa marcas que vendem das que ficam invisíveis no digital</div>
+        <div class="card-hook">7 slides · Comparativo de mentalidade, estratégia e execução</div>
+      </div>
+
+      <!-- REEL #2 — Qui 19/06 -->
+      <div class="card reel best-day">
+        <div class="card-top">
+          <div><div class="card-date-num">19/06</div><div class="card-day-name">Quinta-feira</div></div>
+          <span class="card-time-tag">18h30</span>
+        </div>
+        <div class="badges">
+          <span class="badge f-reel">Reel</span>
+          <span class="badge p-pos">Posicionamento</span>
+        </div>
+        <div class="card-title">Seu produto não é o problema. Seu posicionamento é.</div>
+        <div class="card-hook">"Você não está perdendo venda por causa do produto. É o posicionamento."</div>
+        <span class="best-day-tag">Quinta — dia #2 de alcance</span>
+      </div>
+
+    </div>
+
+    <div class="static-section">
+      <div class="static-label">· Estáticos Diários ·</div>
+      <div class="day-header">
+        <span>Dom</span><span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span>
+      </div>
+      <div class="static-grid">
+        <div class="scard">
+          <div class="scard-head"><div><div class="scard-date">15</div><div class="scard-day">Dom</div></div><span class="scard-time">10h</span></div>
+          <div class="scard-quote">"Especialista cobra mais. Generalista compete por preço. Escolha um lado."</div>
+          <div class="scard-foot"><span class="sbadge p-pos">Pos</span><div class="feat-dots"></div></div>
+        </div>
+        <div class="scard">
+          <div class="scard-head"><div><div class="scard-date">16</div><div class="scard-day">Seg</div></div><span class="scard-time">19h</span></div>
+          <div class="scard-quote">"Nicho não te limita. Te posiciona onde você pode ser o melhor."</div>
+          <div class="scard-foot"><span class="sbadge p-aut">Aut</span><div class="feat-dots"></div></div>
+        </div>
+        <div class="scard">
+          <div class="scard-head"><div><div class="scard-date">17</div><div class="scard-day">Ter</div></div><span class="scard-time">10h</span></div>
+          <div class="scard-quote">"Retenção é o novo alcance. Qualidade é o novo volume."</div>
+          <div class="scard-foot"><span class="sbadge p-edu">Edu</span><div class="feat-dots"><span class="fdot r"></span></div></div>
+        </div>
+        <div class="scard">
+          <div class="scard-head"><div><div class="scard-date">18</div><div class="scard-day">Qua</div></div><span class="scard-time">19h</span></div>
+          <div class="scard-quote">"Visibilidade sem conversão é vaidade. Estratégia gera resultado."</div>
+          <div class="scard-foot"><span class="sbadge p-pos">Pos</span><div class="feat-dots"><span class="fdot c"></span></div></div>
+        </div>
+        <div class="scard">
+          <div class="scard-head"><div><div class="scard-date">19</div><div class="scard-day">Qui</div></div><span class="scard-time">10h</span></div>
+          <div class="scard-quote">"O cliente ideal já existe. Você precisa aparecer na frente dele."</div>
+          <div class="scard-foot"><span class="sbadge p-tra">Tra</span><div class="feat-dots"><span class="fdot r"></span></div></div>
+        </div>
+        <div class="scard">
+          <div class="scard-head"><div><div class="scard-date">20</div><div class="scard-day">Sex</div></div><span class="scard-time">10h</span></div>
+          <div class="scard-quote">"Mais posts não é a resposta. Mais estratégia é."</div>
+          <div class="scard-foot"><span class="sbadge p-pos">Pos</span><div class="feat-dots"></div></div>
+        </div>
+        <div class="scard">
+          <div class="scard-head"><div><div class="scard-date">21</div><div class="scard-day">Sáb</div></div><span class="scard-time">10h</span></div>
+          <div class="scard-quote">"Marca forte não é a mais bonita. É a mais clara."</div>
+          <div class="scard-foot"><span class="sbadge p-aut">Aut</span><div class="feat-dots"></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════
+       SEMANA 4 — 22 a 28/jun
+  ══════════════════════════════ -->
+  <section class="week">
+    <div class="week-head">
+      <span class="week-num">Semana 4</span>
+      <span class="week-period">22 – 28 de junho</span>
+      <div class="week-rule"></div>
+      <span class="week-reel-badge"><span></span>2 Reels · Ter + Qui</span>
+    </div>
+
+    <div class="feat-label">Reels &amp; Carrosséis da Semana</div>
+    <div class="posts-grid">
+
+      <!-- REEL #1 — Ter 24/06 -->
+      <div class="card reel best-day">
+        <div class="card-top">
+          <div><div class="card-date-num">24/06</div><div class="card-day-name">Terça-feira</div></div>
+          <span class="card-time-tag">18h30</span>
+        </div>
+        <div class="badges">
+          <span class="badge f-reel">Reel</span>
+          <span class="badge p-edu">Educação</span>
+        </div>
+        <div class="card-title">Tráfego pago: por que a maioria das empresas perde dinheiro nele</div>
+        <div class="card-hook">"Tráfego pago sem estratégia é só queimar dinheiro mais rápido."</div>
+        <span class="best-day-tag">Terça — dia #1 de alcance</span>
+      </div>
+
+      <!-- CARROSSEL — Qua 25/06 -->
+      <div class="card carrossel">
+        <div class="card-top">
+          <div><div class="card-date-num">25/06</div><div class="card-day-name">Quarta-feira</div></div>
+          <span class="card-time-tag">12h00</span>
+        </div>
+        <div class="badges">
+          <span class="badge f-carrossel">Carrossel</span>
+          <span class="badge p-edu">Educação</span>
+        </div>
+        <div class="card-title">Guia prático: como estruturar a presença digital do seu negócio do zero</div>
+        <div class="card-hook">7 slides · Do diagnóstico ao tráfego pago — passo a passo</div>
+      </div>
+
+      <!-- REEL #2 — Qui 26/06 -->
+      <div class="card reel best-day">
+        <div class="card-top">
+          <div><div class="card-date-num">26/06</div><div class="card-day-name">Quinta-feira</div></div>
+          <span class="card-time-tag">18h30</span>
+        </div>
+        <div class="badges">
+          <span class="badge f-reel">Reel</span>
+          <span class="badge p-pro">Processo</span>
+        </div>
+        <div class="card-title">O que acontece quando um cliente entra na B.SISTEM</div>
+        <div class="card-hook">"Esse é o processo que transforma empresa local em referência digital."</div>
+        <span class="best-day-tag">Quinta — dia #2 de alcance</span>
+      </div>
+
+      <!-- CARROSSEL — Sex 27/06 -->
+      <div class="card carrossel">
+        <div class="card-top">
+          <div><div class="card-date-num">27/06</div><div class="card-day-name">Sexta-feira</div></div>
+          <span class="card-time-tag">12h00</span>
+        </div>
+        <div class="badges">
+          <span class="badge f-carrossel">Carrossel</span>
+          <span class="badge p-pos">Posicionamento</span>
+        </div>
+        <div class="card-title">Por que especialização é mais lucrativa do que diversificação</div>
+        <div class="card-hook">7 slides · Generalista vs. Especialista · Por que nicho fecha mais contrato</div>
+      </div>
+
+    </div>
+
+    <div class="static-section">
+      <div class="static-label">· Estáticos Diários ·</div>
+      <div class="day-header">
+        <span>Dom</span><span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span>
+      </div>
+      <div class="static-grid">
+        <div class="scard">
+          <div class="scard-head"><div><div class="scard-date">22</div><div class="scard-day">Dom</div></div><span class="scard-time">10h</span></div>
+          <div class="scard-quote">"Cada post é uma chance de gerar confiança — ou perder atenção."</div>
+          <div class="scard-foot"><span class="sbadge p-aut">Aut</span><div class="feat-dots"></div></div>
+        </div>
+        <div class="scard">
+          <div class="scard-head"><div><div class="scard-date">23</div><div class="scard-day">Seg</div></div><span class="scard-time">19h</span></div>
+          <div class="scard-quote">"Prospecção ativa + conteúdo estratégico = crescimento constante."</div>
+          <div class="scard-foot"><span class="sbadge p-pro">Pro</span><div class="feat-dots"></div></div>
+        </div>
+        <div class="scard">
+          <div class="scard-head"><div><div class="scard-date">24</div><div class="scard-day">Ter</div></div><span class="scard-time">10h</span></div>
+          <div class="scard-quote">"Sem diagnóstico, qualquer estratégia é chute no escuro."</div>
+          <div class="scard-foot"><span class="sbadge p-pro">Pro</span><div class="feat-dots"><span class="fdot r"></span></div></div>
+        </div>
+        <div class="scard">
+          <div class="scard-head"><div><div class="scard-date">25</div><div class="scard-day">Qua</div></div><span class="scard-time">19h</span></div>
+          <div class="scard-quote">"O conteúdo que gera salvamento é o que gera resultado."</div>
+          <div class="scard-foot"><span class="sbadge p-edu">Edu</span><div class="feat-dots"><span class="fdot c"></span></div></div>
+        </div>
+        <div class="scard">
+          <div class="scard-head"><div><div class="scard-date">26</div><div class="scard-day">Qui</div></div><span class="scard-time">10h</span></div>
+          <div class="scard-quote">"Crescer no digital não é questão de sorte. É questão de método."</div>
+          <div class="scard-foot"><span class="sbadge p-pro">Pro</span><div class="feat-dots"><span class="fdot r"></span></div></div>
+        </div>
+        <div class="scard">
+          <div class="scard-head"><div><div class="scard-date">27</div><div class="scard-day">Sex</div></div><span class="scard-time">19h</span></div>
+          <div class="scard-quote">"Posicionamento correto elimina a guerra de preço."</div>
+          <div class="scard-foot"><span class="sbadge p-pos">Pos</span><div class="feat-dots"><span class="fdot c"></span></div></div>
+        </div>
+        <div class="scard">
+          <div class="scard-head"><div><div class="scard-date">28</div><div class="scard-day">Sáb</div></div><span class="scard-time">10h</span></div>
+          <div class="scard-quote">"O maior erro é esperar o momento certo. O momento certo é agora."</div>
+          <div class="scard-foot"><span class="sbadge p-pos">Pos</span><div class="feat-dots"></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════
+       SEMANA 5 — 29 a 30/jun
+  ══════════════════════════════ -->
+  <section class="week">
+    <div class="week-head">
+      <span class="week-num">Semana 5</span>
+      <span class="week-period">29 – 30 de junho</span>
+      <div class="week-rule"></div>
+    </div>
+    <div class="static-section">
+      <div class="static-label">· Estáticos de Encerramento ·</div>
+      <div class="static-grid" style="grid-template-columns: repeat(2, 1fr); max-width: 380px;">
+        <div class="scard">
+          <div class="scard-head"><div><div class="scard-date">29</div><div class="scard-day">Dom</div></div><span class="scard-time">10h</span></div>
+          <div class="scard-quote">"Um mês de estratégia vale mais do que um ano de improviso."</div>
+          <div class="scard-foot"><span class="sbadge p-aut">Aut</span><div class="feat-dots"></div></div>
+        </div>
+        <div class="scard">
+          <div class="scard-head"><div><div class="scard-date">30</div><div class="scard-day">Seg</div></div><span class="scard-time">19h</span></div>
+          <div class="scard-quote">"Encerra junho. Começa o crescimento."</div>
+          <div class="scard-foot"><span class="sbadge p-pos">Pos</span><div class="feat-dots"></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ STATS ═══════════ -->
+  <div class="stats-section">
+    <div class="stats-lbl">Visão geral do mês</div>
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-num">43</div>
+        <div class="stat-lbl">Publicações</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num">30</div>
+        <div class="stat-lbl">Estáticos</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num">8</div>
+        <div class="stat-lbl">Reels</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num">5</div>
+        <div class="stat-lbl">Carrosséis</div>
+      </div>
+    </div>
+
+    <div class="notes-box">
+      <div class="note-col">
+        <h4>Estratégia de Reels</h4>
+        <ul>
+          <li>2 Reels fixos por semana: Ter + Qui</li>
+          <li>Sempre às 18h30 (pico pós-trabalho)</li>
+          <li>Hook nos primeiros 3 segundos</li>
+          <li>Câmera direta, fala objetiva, sem silêncio</li>
+          <li>Áudio original tem prioridade no algoritmo</li>
+          <li>Legenda ativada — acessibilidade + alcance</li>
+        </ul>
+      </div>
+      <div class="note-col">
+        <h4>Estático Diário</h4>
+        <ul>
+          <li>1 por dia, todos os 30 dias de junho</li>
+          <li>Dias com Reel: estático às 08h ou 10h</li>
+          <li>Dias com Carrossel (12h): estático às 19h</li>
+          <li>Fins de semana: estático às 10h</li>
+          <li>Visual limpo, quote forte, pilar definido</li>
+          <li>Variar entre fundo preto e fundo branco</li>
+        </ul>
+      </div>
+      <div class="note-col">
+        <h4>KPIs do Mês</h4>
+        <ul>
+          <li>Retenção de Reel &gt; 60% (crítico para boost)</li>
+          <li>Salvamentos por carrossel &gt; 2%</li>
+          <li>Crescimento de seguidores &gt; 5%/semana</li>
+          <li>Mensagens recebidas via link na bio</li>
+          <li>Stories diários para manter algoritmo ativo</li>
+          <li>Engajamento nos estáticos (comentários)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══════════ FOOTER ═══════════ -->
+<footer class="footer">
+  <div class="footer-logo">B.BOTH</div>
+  <div class="footer-tag"><span>•</span> Be Bold, Be Better <span>•</span></div>
+</footer>
+
+</body>
+</html>
