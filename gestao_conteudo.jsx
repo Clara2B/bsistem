@@ -4,7 +4,7 @@ import {
   Plus, X, Trash2, Edit3, Download, ExternalLink, Upload,
   CheckCircle2, Circle, Clock, AlertCircle, Search,
   ChevronLeft, ChevronRight, MoreVertical, Filter, Image as ImageIcon,
-  Sparkles, FileUp, Link as LinkIcon, Pencil, Check, Menu, ZoomIn, Settings, Eye, EyeOff, Sun, Moon
+  Sparkles, FileUp, Link as LinkIcon, Pencil, Check, Menu, ZoomIn, Settings, Eye, EyeOff, Sun, Moon, Layers
 } from 'lucide-react';
 
 /* ============================================================
@@ -154,6 +154,7 @@ const K = {
   thumb: (fid) => `thumb:${fid}`,
   image: (fid) => `image:${fid}`,
   config: (eid) => `entity:${eid}:config`,
+  video:  (fid) => `video:${fid}`,
 };
 
 /* ============================================================
@@ -525,6 +526,84 @@ function GlobalStyles({ theme = 'dark' }) {
       .config-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
       .config-actions .btn-primary { flex: 1; justify-content: center; min-width: 140px; }
 
+      /* ===== POST TYPE SELECTOR ===== */
+      .post-type-selector { display: flex; gap: 8px; }
+      .post-type-btn {
+        flex: 1; padding: 12px 8px; border-radius: 11px;
+        border: 1.5px solid var(--ink-border); background: var(--ink-raised);
+        color: var(--mist-muted); font-size: 12.5px; font-weight: 500;
+        cursor: pointer; text-align: center; transition: all 0.15s; font-family: inherit;
+      }
+      .post-type-btn:hover { border-color: var(--ink-hover); color: var(--mist); }
+      .post-type-btn.active {
+        border-color: rgba(1,102,252,0.45); background: rgba(1,102,252,0.07);
+        color: var(--brand-blue); font-weight: 600;
+      }
+
+      /* ===== CAROUSEL STRIP ===== */
+      .carousel-strip {
+        display: flex; gap: 8px; overflow-x: auto; padding: 4px 2px 8px;
+        scrollbar-width: thin; scrollbar-color: var(--ink-border) transparent;
+      }
+      .carousel-strip::-webkit-scrollbar { height: 4px; }
+      .carousel-strip::-webkit-scrollbar-thumb { background: var(--ink-border); border-radius: 2px; }
+      .carousel-slide-thumb {
+        position: relative; flex-shrink: 0; width: 96px; height: 96px;
+        border-radius: 9px; overflow: hidden;
+        border: 2px solid var(--ink-border);
+        background: var(--ink-soft);
+      }
+      .carousel-slide-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+      .carousel-slide-num {
+        position: absolute; bottom: 4px; left: 4px;
+        background: rgba(0,0,0,0.6); color: #fff;
+        font-size: 9.5px; font-weight: 700; padding: 2px 6px; border-radius: 5px;
+        pointer-events: none;
+      }
+      .slide-remove {
+        position: absolute; top: 4px; right: 4px;
+        width: 20px; height: 20px; border-radius: 50%;
+        background: rgba(0,0,0,0.6); border: none; color: #fff;
+        display: flex; align-items: center; justify-content: center;
+        cursor: pointer; opacity: 0; transition: opacity 0.15s; padding: 0;
+      }
+      .carousel-slide-thumb:hover .slide-remove { opacity: 1; }
+      .carousel-move-btns {
+        position: absolute; top: 4px; left: 4px;
+        display: flex; gap: 2px; opacity: 0; transition: opacity 0.15s;
+      }
+      .carousel-slide-thumb:hover .carousel-move-btns { opacity: 1; }
+      .carousel-move-btn {
+        width: 18px; height: 18px; border-radius: 4px;
+        background: rgba(0,0,0,0.6); border: none; color: #fff;
+        font-size: 12px; cursor: pointer; padding: 0; line-height: 1;
+        display: flex; align-items: center; justify-content: center;
+      }
+      .carousel-add-btn {
+        flex-shrink: 0; width: 96px; height: 96px; border-radius: 9px;
+        border: 1.5px dashed var(--ink-border); display: flex;
+        flex-direction: column; align-items: center; justify-content: center;
+        gap: 5px; color: var(--mist-muted); font-size: 11px;
+        cursor: pointer; background: transparent; transition: all 0.15s; font-family: inherit;
+      }
+      .carousel-add-btn:hover { border-color: var(--brand-blue); color: var(--brand-blue); }
+
+      /* ===== CAROUSEL PREVIEW NAV ARROWS ===== */
+      .carousel-arrow {
+        position: absolute; top: 50%; transform: translateY(-50%);
+        width: 40px; height: 40px; border-radius: 50%;
+        background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.22);
+        display: flex; align-items: center; justify-content: center;
+        cursor: pointer; color: #fff; backdrop-filter: blur(8px); transition: background 0.15s;
+      }
+      .carousel-arrow:hover { background: rgba(255,255,255,0.28); }
+      .carousel-arrow.prev { left: -52px; }
+      .carousel-arrow.next { right: -52px; }
+      @media (max-width: 640px) {
+        .carousel-arrow.prev { left: 8px; }
+        .carousel-arrow.next { right: 8px; }
+      }
+
       .tab-strip {
         display: flex; gap: 2px;
         border-bottom: 1px solid var(--ink-border-soft);
@@ -835,6 +914,8 @@ function GlobalStyles({ theme = 'dark' }) {
         /* filter bar: quebra linha no mobile */
         .filter-bar { flex-wrap: wrap; row-gap: 8px; }
         .filter-bar > .btn-primary { width: 100%; justify-content: center; }
+        .carousel-strip { gap: 6px; }
+        .carousel-slide-thumb, .carousel-add-btn { width: 80px; height: 80px; }
         /* day-toggle mais compacto no mobile */
         .day-toggle-grid { gap: 4px; }
         .day-btn { padding: 9px 0; font-size: 10.5px; border-radius: 8px; }
@@ -1660,6 +1741,7 @@ function EstaticosTab({ entityId, role, showToast }) {
   const [editing, setEditing] = useState(null);
   const [loading, setLoading] = useState(true);
   const [imgCache, setImgCache] = useState({});
+  const [videoCache, setVideoCache] = useState({});
   const [previewItem, setPreviewItem] = useState(null);
 
   const canEdit = role.canAll || role.canEstaticos;
@@ -1669,14 +1751,15 @@ function EstaticosTab({ entityId, role, showToast }) {
       setLoading(true);
       const data = await storage.getJSON(K.estaticos(entityId), []);
       setItems(data);
-      const cache = {};
+      const iCache = {};
+      const vCache = {};
       for (const it of data) {
-        if (it.imageKey) {
-          const t = await storage.get(K.image(it.imageKey));
-          if (t) cache[it.imageKey] = t;
-        }
+        if (it.imageKey) { const t = await storage.get(K.image(it.imageKey)); if (t) iCache[it.imageKey] = t; }
+        if (it.imageKeys?.length) { for (const k of it.imageKeys) { const t = await storage.get(K.image(k)); if (t) iCache[k] = t; } }
+        if (it.videoKey) { const v = await storage.get(K.video(it.videoKey)); if (v) vCache[it.videoKey] = v; }
       }
-      setImgCache(cache);
+      setImgCache(iCache);
+      setVideoCache(vCache);
       setLoading(false);
     })();
   }, [entityId]);
@@ -1686,22 +1769,57 @@ function EstaticosTab({ entityId, role, showToast }) {
     await storage.set(K.estaticos(entityId), newItems);
   }
 
-  async function handleSave(data, imageBase64) {
-    let imageKey = data.imageKey;
-    if (imageBase64) {
-      imageKey = uid();
-      await storage.set(K.image(imageKey), imageBase64);
-      setImgCache(c => ({ ...c, [imageKey]: imageBase64 }));
+  async function handleSave(data, singleImgBase64, carouselSlideData, videoBase64) {
+    const type = data.type || 'imagem';
+    let fd = { ...data, type };
+    const niCache = { ...imgCache };
+    const nvCache = { ...videoCache };
+
+    if (type === 'imagem') {
+      if (singleImgBase64) {
+        const k = uid();
+        await storage.set(K.image(k), singleImgBase64);
+        niCache[k] = singleImgBase64;
+        if (editing?.imageKey) { await storage.delete(K.image(editing.imageKey)); delete niCache[editing.imageKey]; }
+        fd.imageKey = k;
+      }
+      if (editing?.imageKeys) for (const k of editing.imageKeys) { await storage.delete(K.image(k)); delete niCache[k]; }
+      if (editing?.videoKey) { await storage.delete(K.video(editing.videoKey)); delete nvCache[editing.videoKey]; }
+      fd.imageKeys = null; fd.videoKey = null;
+
+    } else if (type === 'carrossel') {
+      const finalKeys = [];
+      for (const slide of (carouselSlideData || [])) {
+        if (slide.key && !slide.base64) { finalKeys.push(slide.key); }
+        else if (slide.base64) { const k = uid(); await storage.set(K.image(k), slide.base64); niCache[k] = slide.base64; finalKeys.push(k); }
+      }
+      const oldKeys = editing?.imageKeys || (editing?.imageKey ? [editing.imageKey] : []);
+      for (const k of oldKeys) { if (!finalKeys.includes(k)) { await storage.delete(K.image(k)); delete niCache[k]; } }
+      if (editing?.videoKey) { await storage.delete(K.video(editing.videoKey)); delete nvCache[editing.videoKey]; }
+      fd.imageKeys = finalKeys; fd.imageKey = finalKeys[0] || null; fd.videoKey = null;
+
+    } else if (type === 'video') {
+      if (videoBase64) {
+        const k = uid();
+        await storage.set(K.video(k), videoBase64);
+        nvCache[k] = videoBase64;
+        if (editing?.videoKey) { await storage.delete(K.video(editing.videoKey)); delete nvCache[editing.videoKey]; }
+        fd.videoKey = k;
+      }
+      if (editing?.imageKey) { await storage.delete(K.image(editing.imageKey)); delete niCache[editing.imageKey]; }
+      if (editing?.imageKeys) for (const k of editing.imageKeys) { await storage.delete(K.image(k)); delete niCache[k]; }
+      fd.imageKey = null; fd.imageKeys = null;
     }
+
+    setImgCache(niCache);
+    setVideoCache(nvCache);
+    const label = { imagem: 'Estático', carrossel: 'Carrossel', video: 'Vídeo' }[type] || 'Item';
     if (editing) {
-      if (editing.imageKey && imageKey !== editing.imageKey) await storage.delete(K.image(editing.imageKey));
-      const newItems = items.map(i => i.id === editing.id ? { ...i, ...data, imageKey } : i);
-      await saveItems(newItems);
-      showToast('success', 'Estático atualizado');
+      await saveItems(items.map(i => i.id === editing.id ? { ...i, ...fd } : i));
+      showToast('success', `${label} atualizado`);
     } else {
-      const item = { id: uid(), ...data, imageKey, createdAt: Date.now() };
-      await saveItems([item, ...items]);
-      showToast('success', 'Estático adicionado');
+      await saveItems([{ id: uid(), ...fd, createdAt: Date.now() }, ...items]);
+      showToast('success', `${label} adicionado`);
     }
     setModalOpen(false);
     setEditing(null);
@@ -1710,26 +1828,38 @@ function EstaticosTab({ entityId, role, showToast }) {
   async function handleDelete(id) {
     const item = items.find(i => i.id === id);
     if (item?.imageKey) await storage.delete(K.image(item.imageKey));
+    if (item?.imageKeys) for (const k of item.imageKeys) await storage.delete(K.image(k));
+    if (item?.videoKey) await storage.delete(K.video(item.videoKey));
     await saveItems(items.filter(i => i.id !== id));
-    showToast('success', 'Estático removido');
+    showToast('success', 'Removido');
   }
 
   async function toggleStatus(item) {
     if (!canEdit) return;
-    const newStatus = item.status === 'postado' ? 'para-postar' : 'postado';
-    await saveItems(items.map(i => i.id === item.id ? { ...i, status: newStatus } : i));
+    await saveItems(items.map(i => i.id === item.id ? { ...i, status: i.status === 'postado' ? 'para-postar' : 'postado' } : i));
   }
 
-  async function handleDownloadImage(item) {
-    if (!item.imageKey) return;
-    const data = imgCache[item.imageKey] || await storage.get(K.image(item.imageKey));
-    if (!data) { showToast('error', 'Imagem não encontrada'); return; }
-    const ext = data.startsWith('data:image/png') ? 'png'
-               : data.startsWith('data:image/webp') ? 'webp' : 'jpg';
-    downloadBase64(data, `${slugify(item.title) || item.id}.${ext}`);
+  async function handleDownload(item, imgSrcOverride) {
+    const type = item.type || 'imagem';
+    if (type === 'video') {
+      const d = videoCache[item.videoKey] || await storage.get(K.video(item.videoKey));
+      if (!d) { showToast('error', 'Vídeo não encontrado'); return; }
+      downloadBase64(d, `${slugify(item.title) || item.id}.mp4`);
+    } else {
+      const src = imgSrcOverride || (type === 'carrossel' ? imgCache[item.imageKeys?.[0]] : imgCache[item.imageKey]);
+      if (!src) { showToast('error', 'Imagem não encontrada'); return; }
+      const ext = src.startsWith('data:image/png') ? 'png' : src.startsWith('data:image/webp') ? 'webp' : 'jpg';
+      downloadBase64(src, `${slugify(item.title) || item.id}.${ext}`);
+    }
   }
 
   const filtered = items.filter(i => filter === 'all' || i.status === filter);
+
+  const TYPE_BADGE = {
+    imagem:    { label: 'ESTÁTICO',  bg: 'rgba(1,102,252,0.92)' },
+    carrossel: { label: 'CARROSSEL', bg: 'rgba(124,58,237,0.92)' },
+    video:     { label: 'VÍDEO/GIF', bg: 'rgba(180,83,9,0.92)' },
+  };
 
   return (
     <div className="tab-content">
@@ -1740,24 +1870,18 @@ function EstaticosTab({ entityId, role, showToast }) {
             { id: 'para-postar', label: 'Para postar', count: items.filter(i => i.status === 'para-postar').length },
             { id: 'postado', label: 'Postado', count: items.filter(i => i.status === 'postado').length },
           ].map(f => (
-            <button
-              key={f.id}
-              onClick={() => setFilter(f.id)}
-              className="btn"
-              style={{
-                background: filter === f.id ? 'var(--ink-raised)' : 'transparent',
-                borderColor: filter === f.id ? 'var(--ink-border)' : 'transparent',
-                color: filter === f.id ? 'var(--mist)' : 'var(--mist-dim)',
-              }}
-            >
-              {f.label}
-              <span style={{ fontSize: 11, color: 'var(--mist-muted)', marginLeft: 4 }}>{f.count}</span>
+            <button key={f.id} onClick={() => setFilter(f.id)} className="btn" style={{
+              background: filter === f.id ? 'var(--ink-raised)' : 'transparent',
+              borderColor: filter === f.id ? 'var(--ink-border)' : 'transparent',
+              color: filter === f.id ? 'var(--mist)' : 'var(--mist-dim)',
+            }}>
+              {f.label}<span style={{ fontSize: 11, color: 'var(--mist-muted)', marginLeft: 4 }}>{f.count}</span>
             </button>
           ))}
         </div>
         {canEdit && (
           <button className="btn btn-primary" onClick={() => { setEditing(null); setModalOpen(true); }}>
-            <Plus size={15} /> Novo estático
+            <Plus size={15} /> Novo conteúdo
           </button>
         )}
       </div>
@@ -1765,7 +1889,7 @@ function EstaticosTab({ entityId, role, showToast }) {
       {loading ? null : filtered.length === 0 ? (
         <div className="empty">
           <div className="empty-icon"><ImageIcon size={20} /></div>
-          <div style={{ fontSize: 14, color: 'var(--mist-dim)', marginBottom: 6 }}>Nenhum estático {filter === 'all' ? 'ainda' : 'nessa categoria'}</div>
+          <div style={{ fontSize: 14, color: 'var(--mist-dim)', marginBottom: 6 }}>Nenhum conteúdo {filter === 'all' ? 'ainda' : 'nessa categoria'}</div>
           {canEdit && filter === 'all' && (
             <button className="btn btn-primary" style={{ marginTop: 12 }} onClick={() => setModalOpen(true)}>
               <Plus size={14} /> Adicionar o primeiro
@@ -1774,92 +1898,102 @@ function EstaticosTab({ entityId, role, showToast }) {
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 14 }}>
-          {filtered.map(item => (
-            <div key={item.id} className="card" style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-              <div
-                className={item.imageKey && imgCache[item.imageKey] ? 'img-thumb' : ''}
-                onClick={() => item.imageKey && imgCache[item.imageKey] && setPreviewItem(item)}
-                style={{
-                  aspectRatio: '1/1',
-                  background: item.imageKey && imgCache[item.imageKey]
-                    ? `url(${imgCache[item.imageKey]}) center/cover`
-                    : 'linear-gradient(135deg, var(--ink-soft) 0%, var(--ink-base) 100%)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  position: 'relative'
-                }}
-              >
-                {!item.imageKey && (
-                  <div style={{ color: 'var(--mist-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-                    <ImageIcon size={28} strokeWidth={1.5} />
-                    <span style={{ fontSize: 11 }}>Sem imagem</span>
+          {filtered.map(item => {
+            const type = item.type || 'imagem';
+            const tb = TYPE_BADGE[type] || TYPE_BADGE.imagem;
+            const firstKey = type === 'carrossel' ? item.imageKeys?.[0] : type === 'imagem' ? item.imageKey : null;
+            const firstImg = firstKey ? imgCache[firstKey] : null;
+            const videoSrc = type === 'video' && item.videoKey ? videoCache[item.videoKey] : null;
+            const isClickable = type === 'video' ? !!videoSrc : !!firstImg;
+
+            return (
+              <div key={item.id} className="card" style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                {/* Thumbnail */}
+                <div
+                  className={isClickable ? 'img-thumb' : ''}
+                  onClick={() => isClickable && setPreviewItem(item)}
+                  style={{
+                    aspectRatio: '1/1', position: 'relative', overflow: 'hidden',
+                    background: firstImg ? `url(${firstImg}) center/cover`
+                      : type === 'video' ? 'var(--ink-deep)'
+                      : 'linear-gradient(135deg, var(--ink-soft) 0%, var(--ink-base) 100%)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}
+                >
+                  {type === 'video' && videoSrc && (
+                    <video src={videoSrc} autoPlay muted loop playsInline
+                      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', pointerEvents: 'none' }} />
+                  )}
+                  {!firstImg && type !== 'video' && (
+                    <div style={{ color: 'var(--mist-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, position: 'relative', zIndex: 1 }}>
+                      {type === 'carrossel' ? <Layers size={28} strokeWidth={1.5} /> : <ImageIcon size={28} strokeWidth={1.5} />}
+                      <span style={{ fontSize: 11 }}>Sem imagem</span>
+                    </div>
+                  )}
+                  {type === 'video' && !videoSrc && (
+                    <div style={{ color: 'var(--mist-muted)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, position: 'relative', zIndex: 1 }}>
+                      <Video size={28} strokeWidth={1.5} /><span style={{ fontSize: 11 }}>Sem vídeo</span>
+                    </div>
+                  )}
+                  {isClickable && type !== 'video' && (
+                    <div className="img-thumb-overlay"><ZoomIn size={32} color="#fff" /></div>
+                  )}
+                  {/* Badges */}
+                  <div style={{ position: 'absolute', top: 10, left: 10, zIndex: 2 }}>
+                    <span className="badge" style={{ background: tb.bg, color: '#fff', fontWeight: 600, backdropFilter: 'blur(4px)', letterSpacing: '0.04em', fontSize: 10.5 }}>
+                      {tb.label}
+                    </span>
                   </div>
-                )}
-                {item.imageKey && imgCache[item.imageKey] && (
-                  <div className="img-thumb-overlay">
-                    <ZoomIn size={32} color="#fff" />
+                  <div style={{ position: 'absolute', top: 10, right: 10, zIndex: 2 }}>
+                    <StatusBadge status={item.status} />
                   </div>
-                )}
-                <div style={{ position: 'absolute', top: 10, left: 10 }}>
-                  <span className="badge" style={{
-                    background: 'rgba(1,102,252,0.92)',
-                    color: '#ffffff', fontWeight: 600, backdropFilter: 'blur(4px)',
-                    letterSpacing: '0.04em', fontSize: 10.5
-                  }}>ESTÁTICO</span>
-                </div>
-                <div style={{ position: 'absolute', top: 10, right: 10 }}>
-                  <StatusBadge status={item.status} />
-                </div>
-              </div>
-              <div style={{ padding: 14, flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
-                  <button
-                    onClick={() => toggleStatus(item)}
-                    style={{ background: 'transparent', border: 'none', padding: 0, display: 'flex', marginTop: 1 }}
-                    disabled={!canEdit}
-                  >
-                    {item.status === 'postado' ?
-                      <CheckCircle2 size={16} color={COLORS.brandCyan} /> :
-                      <Circle size={16} color={COLORS.mistMuted} />
-                    }
-                  </button>
-                  <div style={{ flex: 1, fontSize: 14, fontWeight: 500, color: 'var(--mist)' }}>{item.title}</div>
-                </div>
-                {item.description && (
-                  <div style={{ fontSize: 12.5, color: 'var(--mist-dim)', lineHeight: 1.45 }}>{item.description}</div>
-                )}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto', paddingTop: 6 }}>
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                    {item.imageKey && imgCache[item.imageKey] && (
-                      <button
-                        className="btn"
-                        style={{ padding: '4px 9px', fontSize: 11.5 }}
-                        onClick={() => handleDownloadImage(item)}
-                        title="Baixar imagem original"
-                      >
-                        <Download size={11} /> Baixar
-                      </button>
-                    )}
-                    {item.designLink && (
-                      <a href={item.designLink} target="_blank" rel="noopener noreferrer" className="btn" style={{ padding: '4px 9px', fontSize: 11.5, textDecoration: 'none' }}>
-                        <LinkIcon size={11} /> Design
-                      </a>
-                    )}
-                    {item.scheduledDate && (
-                      <span className="mono" style={{ fontSize: 11, color: 'var(--mist-muted)' }}>
-                        {parseLocalDate(item.scheduledDate).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
-                      </span>
-                    )}
-                  </div>
-                  {canEdit && (
-                    <div style={{ display: 'flex', gap: 2 }}>
-                      <button className="btn-icon" onClick={() => { setEditing(item); setModalOpen(true); }}><Pencil size={13} /></button>
-                      <button className="btn-icon btn-danger" onClick={() => handleDelete(item.id)}><Trash2 size={13} /></button>
+                  {type === 'carrossel' && item.imageKeys?.length > 0 && (
+                    <div style={{ position: 'absolute', bottom: 10, right: 10, zIndex: 2, background: 'rgba(0,0,0,0.6)', color: '#fff', fontSize: 11, fontWeight: 600, padding: '3px 9px', borderRadius: 20, backdropFilter: 'blur(4px)' }}>
+                      {item.imageKeys.length} slides
                     </div>
                   )}
                 </div>
+
+                {/* Card body */}
+                <div style={{ padding: 14, flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                    <button onClick={() => toggleStatus(item)} style={{ background: 'transparent', border: 'none', padding: 0, display: 'flex', marginTop: 1 }} disabled={!canEdit}>
+                      {item.status === 'postado' ? <CheckCircle2 size={16} color={COLORS.brandCyan} /> : <Circle size={16} color={COLORS.mistMuted} />}
+                    </button>
+                    <div style={{ flex: 1, fontSize: 14, fontWeight: 500, color: 'var(--mist)' }}>{item.title}</div>
+                  </div>
+                  {item.description && (
+                    <div style={{ fontSize: 12.5, color: 'var(--mist-dim)', lineHeight: 1.45 }}>{item.description}</div>
+                  )}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto', paddingTop: 6 }}>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                      {isClickable && (
+                        <button className="btn" style={{ padding: '4px 9px', fontSize: 11.5 }} onClick={() => handleDownload(item)} title="Baixar">
+                          <Download size={11} /> Baixar
+                        </button>
+                      )}
+                      {item.designLink && (
+                        <a href={item.designLink} target="_blank" rel="noopener noreferrer" className="btn" style={{ padding: '4px 9px', fontSize: 11.5, textDecoration: 'none' }}>
+                          <LinkIcon size={11} /> Design
+                        </a>
+                      )}
+                      {item.scheduledDate && (
+                        <span className="mono" style={{ fontSize: 11, color: 'var(--mist-muted)' }}>
+                          {parseLocalDate(item.scheduledDate).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
+                        </span>
+                      )}
+                    </div>
+                    {canEdit && (
+                      <div style={{ display: 'flex', gap: 2 }}>
+                        <button className="btn-icon" onClick={() => { setEditing(item); setModalOpen(true); }}><Pencil size={13} /></button>
+                        <button className="btn-icon btn-danger" onClick={() => handleDelete(item.id)}><Trash2 size={13} /></button>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -1869,18 +2003,25 @@ function EstaticosTab({ entityId, role, showToast }) {
           onClose={() => { setModalOpen(false); setEditing(null); }}
           onSave={handleSave}
           existingImage={editing?.imageKey ? imgCache[editing.imageKey] : null}
+          existingCarouselImages={(editing?.imageKeys || []).map(k => imgCache[k]).filter(Boolean)}
+          existingVideoSrc={editing?.videoKey ? videoCache[editing.videoKey] : null}
           showToast={showToast}
         />
       )}
 
-      {previewItem && imgCache[previewItem.imageKey] && (
-        <ImagePreviewModal
-          item={previewItem}
-          imgSrc={imgCache[previewItem.imageKey]}
-          onClose={() => setPreviewItem(null)}
-          onDownload={() => handleDownloadImage(previewItem)}
-        />
-      )}
+      {previewItem && (() => {
+        const type = previewItem.type || 'imagem';
+        if (type === 'video') {
+          const vsrc = videoCache[previewItem.videoKey];
+          return vsrc ? <VideoPreviewModal item={previewItem} videoSrc={vsrc} onClose={() => setPreviewItem(null)} onDownload={() => handleDownload(previewItem)} /> : null;
+        }
+        if (type === 'carrossel') {
+          const imgs = (previewItem.imageKeys || []).map(k => imgCache[k]).filter(Boolean);
+          return imgs.length ? <CarouselPreviewModal item={previewItem} images={imgs} onClose={() => setPreviewItem(null)} onDownloadSlide={(src, i) => handleDownload(previewItem, src)} /> : null;
+        }
+        const src = imgCache[previewItem.imageKey];
+        return src ? <ImagePreviewModal item={previewItem} imgSrc={src} onClose={() => setPreviewItem(null)} onDownload={() => handleDownload(previewItem)} /> : null;
+      })()}
     </div>
   );
 }
@@ -1925,71 +2066,276 @@ function ImagePreviewModal({ item, imgSrc, onClose, onDownload }) {
   );
 }
 
-function EstaticoModal({ item, onClose, onSave, existingImage, showToast }) {
+/* ============================================================
+   CAROUSEL PREVIEW MODAL
+============================================================ */
+function CarouselPreviewModal({ item, images, onClose, onDownloadSlide }) {
+  const [idx, setIdx] = useState(0);
+  const cur = images[idx];
+
+  useEffect(() => {
+    const handle = e => {
+      if (e.key === 'Escape') onClose();
+      if (e.key === 'ArrowLeft') setIdx(i => Math.max(0, i - 1));
+      if (e.key === 'ArrowRight') setIdx(i => Math.min(images.length - 1, i + 1));
+    };
+    window.addEventListener('keydown', handle);
+    return () => window.removeEventListener('keydown', handle);
+  }, [onClose, images.length]);
+
+  return (
+    <div className="img-preview-backdrop" onClick={onClose}>
+      <div className="img-preview-inner" onClick={e => e.stopPropagation()} style={{ maxWidth: 700 }}>
+        <button className="img-preview-close" onClick={onClose}><X size={16} /></button>
+
+        {/* Prev arrow */}
+        {idx > 0 && (
+          <button className="carousel-arrow prev" onClick={() => setIdx(i => i - 1)}>
+            <ChevronLeft size={22} />
+          </button>
+        )}
+
+        <img className="img-preview-img" src={cur} alt={`Slide ${idx + 1}`} />
+
+        {/* Next arrow */}
+        {idx < images.length - 1 && (
+          <button className="carousel-arrow next" onClick={() => setIdx(i => i + 1)}>
+            <ChevronRight size={22} />
+          </button>
+        )}
+
+        {/* Dot indicators */}
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 6, paddingTop: 10, paddingBottom: 2 }}>
+          {images.map((_, i) => (
+            <button
+              key={i} onClick={() => setIdx(i)}
+              style={{
+                width: i === idx ? 20 : 8, height: 8, borderRadius: 4, border: 'none', cursor: 'pointer', padding: 0, transition: 'all 0.2s',
+                background: i === idx ? COLORS.brandCyan : 'rgba(255,255,255,0.25)',
+              }}
+            />
+          ))}
+        </div>
+
+        <div className="img-preview-bar">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+            <StatusBadge status={item.status} />
+            <span style={{ fontSize: 14, fontWeight: 500, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {item.title}
+            </span>
+            <span className="mono" style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.45)', flexShrink: 0 }}>
+              {idx + 1} / {images.length}
+            </span>
+          </div>
+          <button className="btn btn-primary" onClick={() => onDownloadSlide(cur, idx)} style={{ flexShrink: 0, gap: 7 }}>
+            <Download size={14} /> Baixar slide
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   VIDEO PREVIEW MODAL
+============================================================ */
+function VideoPreviewModal({ item, videoSrc, onClose, onDownload }) {
+  useEffect(() => {
+    const handle = e => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', handle);
+    return () => window.removeEventListener('keydown', handle);
+  }, [onClose]);
+
+  return (
+    <div className="img-preview-backdrop" onClick={onClose}>
+      <div className="img-preview-inner" onClick={e => e.stopPropagation()} style={{ maxWidth: 600 }}>
+        <button className="img-preview-close" onClick={onClose}><X size={16} /></button>
+
+        <video
+          src={videoSrc} controls autoPlay loop playsInline
+          style={{ width: '100%', maxHeight: '70vh', display: 'block', borderRadius: 8, background: '#000' }}
+        />
+
+        <div className="img-preview-bar">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+            <StatusBadge status={item.status} />
+            <span style={{ fontSize: 14, fontWeight: 500, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {item.title}
+            </span>
+            {item.scheduledDate && (
+              <span className="mono" style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.45)', flexShrink: 0 }}>
+                {parseLocalDate(item.scheduledDate).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}
+              </span>
+            )}
+          </div>
+          <button className="btn btn-primary" onClick={onDownload} style={{ flexShrink: 0, gap: 7 }}>
+            <Download size={14} /> Baixar vídeo
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   ESTÁTICO MODAL  (imagem · carrossel · vídeo)
+============================================================ */
+function EstaticoModal({ item, onClose, onSave, existingImage, existingCarouselImages, existingVideoSrc, showToast }) {
+  // Detect initial type from item or default
+  const initType = item?.type || 'imagem';
+  const [postType, setPostType] = useState(initType);
+
+  // Shared fields
   const [title, setTitle] = useState(item?.title || '');
   const [description, setDescription] = useState(item?.description || '');
   const [status, setStatus] = useState(item?.status || 'para-postar');
   const [designLink, setDesignLink] = useState(item?.designLink || '');
   const [scheduledDate, setScheduledDate] = useState(item?.scheduledDate?.slice(0, 10) || '');
+
+  // Imagem
   const [imgPreview, setImgPreview] = useState(existingImage || null);
   const [imgBase64, setImgBase64] = useState(null);
   const imgRef = useRef(null);
 
-  async function handleImage(e) {
+  // Carrossel: array of { key?, base64?, preview }
+  const [slides, setSlides] = useState(() => {
+    if (existingCarouselImages?.length) {
+      return existingCarouselImages.map((src, i) => ({
+        key: item?.imageKeys?.[i] || null,
+        base64: null,
+        preview: src,
+      }));
+    }
+    return [];
+  });
+  const carouselInputRef = useRef(null);
+
+  // Vídeo
+  const [videoPreview, setVideoPreview] = useState(existingVideoSrc || null);
+  const [videoBase64, setVideoBase64] = useState(null);
+  const videoRef = useRef(null);
+
+  async function handleImagem(e) {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 3.5 * 1024 * 1024) {
-      showToast('error', 'Imagem muito grande (máx 3.5MB)');
-      return;
-    }
+    if (file.size > 3.5 * 1024 * 1024) { showToast('error', 'Imagem muito grande (máx 3.5MB)'); return; }
     const b64 = await fileToBase64(file);
     setImgPreview(b64);
     setImgBase64(b64);
   }
 
+  async function handleCarouselAdd(e) {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    const newSlides = [];
+    for (const file of files) {
+      if (file.size > 3.5 * 1024 * 1024) { showToast('error', `${file.name} muito grande (máx 3.5MB por slide)`); continue; }
+      const b64 = await fileToBase64(file);
+      newSlides.push({ key: null, base64: b64, preview: b64 });
+    }
+    setSlides(prev => [...prev, ...newSlides]);
+    e.target.value = '';
+  }
+
+  function removeSlide(i) { setSlides(prev => prev.filter((_, idx) => idx !== i)); }
+  function moveSlide(from, to) {
+    setSlides(prev => {
+      const arr = [...prev];
+      const [el] = arr.splice(from, 1);
+      arr.splice(to, 0, el);
+      return arr;
+    });
+  }
+
+  async function handleVideo(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 8 * 1024 * 1024) { showToast('error', 'Vídeo muito grande (máx 8MB)'); return; }
+    const b64 = await fileToBase64(file);
+    setVideoPreview(b64);
+    setVideoBase64(b64);
+  }
+
   function submit() {
     if (!title.trim()) { showToast('error', 'Título é obrigatório'); return; }
-    onSave({
+    if (postType === 'carrossel' && slides.length === 0) { showToast('error', 'Adicione pelo menos 1 slide'); return; }
+    const baseData = {
+      type: postType,
       title: title.trim(),
       description: description.trim(),
       status,
       designLink: designLink.trim(),
       scheduledDate: scheduledDate || null,
       imageKey: item?.imageKey,
-    }, imgBase64);
+      imageKeys: item?.imageKeys,
+      videoKey: item?.videoKey,
+    };
+    const carouselSlideData = postType === 'carrossel' ? slides.map(s => ({ key: s.key, base64: s.base64 })) : null;
+    onSave(baseData, postType === 'imagem' ? imgBase64 : null, carouselSlideData, postType === 'video' ? videoBase64 : null);
   }
+
+  const TYPE_OPTIONS = [
+    { id: 'imagem',    label: 'Estático',  icon: ImageIcon,    desc: 'Uma imagem' },
+    { id: 'carrossel', label: 'Carrossel', icon: Layers,       desc: 'Várias imagens em sequência' },
+    { id: 'video',     label: 'Vídeo/GIF', icon: Video,        desc: 'Arquivo .mp4 curto' },
+  ];
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 600 }}>
-        <div style={{ padding: 20, borderBottom: '1px solid var(--ink-border-soft)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>{item ? 'Editar estático' : 'Novo estático'}</h3>
+      <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 620 }}>
+        {/* Header */}
+        <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--ink-border-soft)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>{item ? 'Editar conteúdo' : 'Novo conteúdo'}</h3>
           <button className="btn-icon" onClick={onClose}><X size={18} /></button>
         </div>
-        <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+        <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16, overflowY: 'auto', maxHeight: 'calc(90vh - 130px)' }}>
+
+          {/* Post type selector */}
+          <div>
+            <label className="label">Tipo de conteúdo</label>
+            <div className="post-type-selector">
+              {TYPE_OPTIONS.map(t => {
+                const Icon = t.icon;
+                const active = postType === t.id;
+                return (
+                  <button
+                    key={t.id} onClick={() => setPostType(t.id)}
+                    className={`post-type-btn${active ? ' active' : ''}`}
+                  >
+                    <Icon size={20} strokeWidth={1.8} />
+                    <span style={{ fontWeight: 600, fontSize: 13 }}>{t.label}</span>
+                    <span style={{ fontSize: 11, opacity: 0.7, lineHeight: 1.3 }}>{t.desc}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Title */}
           <div>
             <label className="label">Título</label>
             <input value={title} onChange={e => setTitle(e.target.value)} autoFocus />
           </div>
+
+          {/* Caption */}
           <div>
             <label className="label">Legenda / observações (opcional)</label>
             <textarea value={description} onChange={e => setDescription(e.target.value)} />
           </div>
+
+          {/* Status + Date */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
             <div>
               <label className="label">Status</label>
               <div style={{ display: 'flex', gap: 6 }}>
                 {[{ id: 'para-postar', label: 'Para postar' }, { id: 'postado', label: 'Postado' }].map(s => (
-                  <button
-                    key={s.id} onClick={() => setStatus(s.id)}
-                    className="btn"
-                    style={{
-                      flex: 1, justifyContent: 'center',
-                      background: status === s.id ? 'var(--brand-soft)' : 'transparent',
-                      color: status === s.id ? 'var(--brand-cyan)' : 'var(--mist-dim)',
-                      borderColor: status === s.id ? 'rgba(1,102,252,0.22)' : 'var(--ink-border)',
-                    }}
-                  >{s.label}</button>
+                  <button key={s.id} onClick={() => setStatus(s.id)} className="btn" style={{
+                    flex: 1, justifyContent: 'center',
+                    background: status === s.id ? 'var(--brand-soft)' : 'transparent',
+                    color: status === s.id ? 'var(--brand-cyan)' : 'var(--mist-dim)',
+                    borderColor: status === s.id ? 'rgba(1,102,252,0.22)' : 'var(--ink-border)',
+                  }}>{s.label}</button>
                 ))}
               </div>
             </div>
@@ -1998,35 +2344,86 @@ function EstaticoModal({ item, onClose, onSave, existingImage, showToast }) {
               <input type="date" value={scheduledDate} onChange={e => setScheduledDate(e.target.value)} />
             </div>
           </div>
+
+          {/* Design link */}
           <div>
             <label className="label">Link do design (Canva, Figma, Drive...)</label>
             <input value={designLink} onChange={e => setDesignLink(e.target.value)} placeholder="Opcional — fonte editável" />
           </div>
-          <div>
-            <label className="label">Imagem do estático (máx 3.5MB)</label>
-            <input type="file" accept="image/*" ref={imgRef} onChange={handleImage} style={{ display: 'none' }} />
-            {imgPreview ? (
-              <div style={{ position: 'relative', borderRadius: 10, overflow: 'hidden', border: '1px solid var(--ink-border-soft)' }}>
-                <img src={imgPreview} alt="" style={{ width: '100%', display: 'block', maxHeight: 400, objectFit: 'contain', background: 'var(--ink-deep)' }} />
-                <div style={{ position: 'absolute', top: 8, right: 8, display: 'flex', gap: 4 }}>
-                  <button onClick={() => imgRef.current?.click()} className="btn" style={{ padding: '5px 9px', fontSize: 11 }}>
-                    <Edit3 size={12} /> Trocar
-                  </button>
-                  <button
-                    onClick={() => { setImgPreview(null); setImgBase64(null); }}
-                    className="btn"
-                    style={{ padding: '5px 9px' }}
-                  ><Trash2 size={12} /></button>
+
+          {/* ── IMAGEM ── */}
+          {postType === 'imagem' && (
+            <div>
+              <label className="label">Imagem do estático (máx 3.5MB)</label>
+              <input type="file" accept="image/*" ref={imgRef} onChange={handleImagem} style={{ display: 'none' }} />
+              {imgPreview ? (
+                <div style={{ position: 'relative', borderRadius: 10, overflow: 'hidden', border: '1px solid var(--ink-border-soft)' }}>
+                  <img src={imgPreview} alt="" style={{ width: '100%', display: 'block', maxHeight: 380, objectFit: 'contain', background: 'var(--ink-deep)' }} />
+                  <div style={{ position: 'absolute', top: 8, right: 8, display: 'flex', gap: 4 }}>
+                    <button onClick={() => imgRef.current?.click()} className="btn" style={{ padding: '5px 9px', fontSize: 11 }}><Edit3 size={12} /> Trocar</button>
+                    <button onClick={() => { setImgPreview(null); setImgBase64(null); }} className="btn" style={{ padding: '5px 9px' }}><Trash2 size={12} /></button>
+                  </div>
                 </div>
-              </div>
-            ) : (
-              <button className="btn" onClick={() => imgRef.current?.click()} style={{ width: '100%', justifyContent: 'center', padding: '14px' }}>
-                <Upload size={15} /> Anexar imagem
+              ) : (
+                <button className="btn" onClick={() => imgRef.current?.click()} style={{ width: '100%', justifyContent: 'center', padding: 14 }}>
+                  <Upload size={15} /> Anexar imagem
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* ── CARROSSEL ── */}
+          {postType === 'carrossel' && (
+            <div>
+              <label className="label">Slides do carrossel — arraste para reordenar</label>
+              <input type="file" accept="image/*" multiple ref={carouselInputRef} onChange={handleCarouselAdd} style={{ display: 'none' }} />
+              {slides.length > 0 && (
+                <div className="carousel-strip">
+                  {slides.map((slide, i) => (
+                    <div key={i} className="carousel-slide-thumb">
+                      <img src={slide.preview} alt={`Slide ${i + 1}`} />
+                      <div className="carousel-slide-num">{i + 1}</div>
+                      <button className="slide-remove" onClick={() => removeSlide(i)} style={{ position: 'absolute', top: 4, right: 4, background: 'rgba(0,0,0,0.7)', border: 'none', borderRadius: 4, color: '#fff', width: 20, height: 20, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
+                        <X size={10} />
+                      </button>
+                      <div className="carousel-move-btns">
+                        {i > 0 && <button className="carousel-move-btn" onClick={() => moveSlide(i, i - 1)}><ChevronLeft size={11} /></button>}
+                        {i < slides.length - 1 && <button className="carousel-move-btn" onClick={() => moveSlide(i, i + 1)}><ChevronRight size={11} /></button>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <button className="btn carousel-add-btn" onClick={() => carouselInputRef.current?.click()} style={{ width: '100%', justifyContent: 'center', padding: '10px 14px', marginTop: slides.length ? 8 : 0 }}>
+                <Plus size={14} /> {slides.length ? 'Adicionar mais slides' : 'Selecionar imagens'}
               </button>
-            )}
-          </div>
+            </div>
+          )}
+
+          {/* ── VÍDEO ── */}
+          {postType === 'video' && (
+            <div>
+              <label className="label">Vídeo curto (.mp4, máx 8MB)</label>
+              <input type="file" accept="video/mp4,video/*" ref={videoRef} onChange={handleVideo} style={{ display: 'none' }} />
+              {videoPreview ? (
+                <div style={{ position: 'relative', borderRadius: 10, overflow: 'hidden', border: '1px solid var(--ink-border-soft)', background: '#000' }}>
+                  <video src={videoPreview} controls loop playsInline style={{ width: '100%', maxHeight: 300, display: 'block' }} />
+                  <div style={{ position: 'absolute', top: 8, right: 8, display: 'flex', gap: 4 }}>
+                    <button onClick={() => videoRef.current?.click()} className="btn" style={{ padding: '5px 9px', fontSize: 11 }}><Edit3 size={12} /> Trocar</button>
+                    <button onClick={() => { setVideoPreview(null); setVideoBase64(null); }} className="btn" style={{ padding: '5px 9px' }}><Trash2 size={12} /></button>
+                  </div>
+                </div>
+              ) : (
+                <button className="btn" onClick={() => videoRef.current?.click()} style={{ width: '100%', justifyContent: 'center', padding: 14 }}>
+                  <Upload size={15} /> Anexar vídeo
+                </button>
+              )}
+            </div>
+          )}
         </div>
-        <div style={{ padding: 16, borderTop: '1px solid var(--ink-border-soft)', display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+
+        {/* Footer */}
+        <div style={{ padding: '14px 20px', borderTop: '1px solid var(--ink-border-soft)', display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
           <button className="btn" onClick={onClose}>Cancelar</button>
           <button className="btn btn-primary" onClick={submit}>{item ? 'Salvar' : 'Adicionar'}</button>
         </div>
