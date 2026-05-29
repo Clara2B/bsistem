@@ -190,11 +190,11 @@
   ============================================================ */
   const PLATFORMS = [
     { id:'Meta',   label:'Meta / WhatsApp', color:'#0166fc',
-      leadsKey:'leadsTotalMeta',   qualKey:'leadsQualificadosMeta',   investKey:'investimentoMeta'   },
+      leadsKey:'leadsTotalMeta',   qualKey:'leadsQualificadosMeta',   descKey:'descartadosMeta',   investKey:'investimentoMeta'   },
     { id:'Tiktok', label:'TikTok',          color:'#69C9D0',
-      leadsKey:'leadsTotalTiktok', qualKey:'leadsQualificadosTiktok', investKey:'investimentoTiktok' },
+      leadsKey:'leadsTotalTiktok', qualKey:'leadsQualificadosTiktok', descKey:'descartadosTiktok', investKey:'investimentoTiktok' },
     { id:'Google', label:'Google',          color:'#ea580c',
-      leadsKey:'leadsTotalGoogle', qualKey:'leadsQualificadosGoogle', investKey:'investimentoGoogle' },
+      leadsKey:'leadsTotalGoogle', qualKey:'leadsQualificadosGoogle', descKey:'descartadosGoogle', investKey:'investimentoGoogle' },
   ];
 
   /* ============================================================
@@ -203,9 +203,9 @@
   function emptyMetrics() {
     return {
       // Per platform
-      leadsTotalMeta:'',   leadsQualificadosMeta:'',   investimentoMeta:'',
-      leadsTotalTiktok:'', leadsQualificadosTiktok:'', investimentoTiktok:'',
-      leadsTotalGoogle:'', leadsQualificadosGoogle:'', investimentoGoogle:'',
+      leadsTotalMeta:'',   leadsQualificadosMeta:'',   descartadosMeta:'',   investimentoMeta:'',
+      leadsTotalTiktok:'', leadsQualificadosTiktok:'', descartadosTiktok:'', investimentoTiktok:'',
+      leadsTotalGoogle:'', leadsQualificadosGoogle:'', descartadosGoogle:'', investimentoGoogle:'',
       // Conversion
       vendas:'', valorVenda:'',
       // Total actual spend
@@ -227,6 +227,9 @@
     const plat = num(m.leadsQualificadosMeta) + num(m.leadsQualificadosTiktok) + num(m.leadsQualificadosGoogle);
     return plat > 0 ? plat : num(m.leadsQualificados);
   }
+  function getDescartadosTotal(m) {
+    return num(m.descartadosMeta) + num(m.descartadosTiktok) + num(m.descartadosGoogle);
+  }
 
   /* ============================================================
      AUTO ANALYSIS GENERATOR
@@ -234,6 +237,7 @@
   function generateAnalysis(cur, prev) {
     const c = {
       leadsTotal: getLeadsTotal(cur), leadsQualificados: getLeadsQualTotal(cur),
+      descartados: getDescartadosTotal(cur),
       vendas: num(cur.vendas || cur.fechamentos), // backward compat
       valorVenda: num(cur.valorVenda),
       investimentoMidia: getInvestTotal(cur),
@@ -285,6 +289,10 @@
       if (c.leadsQualificados > 0) {
         t += `Dos leads captados, ${c.leadsQualificados} foram qualificados (${fmtPct(qualRate)}), `;
         t += qualRate>=60 ? 'indicando um bom aproveitamento da base captada.' : qualRate>=40 ? 'com aproveitamento moderado — há espaço para melhorar a segmentação.' : 'sugerindo necessidade de refinamento nos critérios de captação.';
+      }
+      if (c.descartados > 0) {
+        const descRate = c.leadsTotal > 0 ? c.descartados/c.leadsTotal*100 : 0;
+        t += ` ${c.descartados} lead${c.descartados!==1?'s foram':'foi'} descartado${c.descartados!==1?'s':''} (${fmtPct(descRate)} da captação).`;
       }
       paragraphs.push({ title:'Captação de Leads', text:t });
     } else {
@@ -940,6 +948,7 @@
     const set = (k, v) => setM(prev => ({ ...prev, [k]: v }));
     const leadsTotal  = num(m.leadsTotalMeta)          + num(m.leadsTotalTiktok)          + num(m.leadsTotalGoogle);
     const leadsQual   = num(m.leadsQualificadosMeta)   + num(m.leadsQualificadosTiktok)   + num(m.leadsQualificadosGoogle);
+    const descTotal   = num(m.descartadosMeta)         + num(m.descartadosTiktok)         + num(m.descartadosGoogle);
     const investTotal = num(m.investimentoMeta)        + num(m.investimentoTiktok)        + num(m.investimentoGoogle);
 
     async function handleFile(e) {
@@ -985,11 +994,12 @@
             <span style={{fontSize:10,color:'var(--danger)',fontWeight:700,marginLeft:6,textTransform:'none',letterSpacing:0}}>* leads obrigatório</span>
           </div>
           <div style={{overflowX:'auto',margin:'0 -2px'}}>
-            <div style={{display:'grid',gridTemplateColumns:'130px repeat(3,minmax(90px,1fr))',gap:8,minWidth:420,padding:'0 2px'}}>
+            <div style={{display:'grid',gridTemplateColumns:'130px repeat(4,minmax(78px,1fr))',gap:8,minWidth:500,padding:'0 2px'}}>
               {/* Column headers */}
               <div/>
               <label className="label" style={{margin:0,textAlign:'center'}}>Leads captados</label>
               <label className="label" style={{margin:0,textAlign:'center'}}>Qualificados</label>
+              <label className="label" style={{margin:0,textAlign:'center'}}>Descartes</label>
               <label className="label" style={{margin:0,textAlign:'center'}}>Invest. (R$)</label>
               {/* Platform rows */}
               {PLATFORMS.map(p => (
@@ -1000,18 +1010,23 @@
                   </div>
                   <input type="number" value={m[p.leadsKey]}  placeholder="0"    onChange={e=>set(p.leadsKey, e.target.value)}  style={{textAlign:'center'}}/>
                   <input type="number" value={m[p.qualKey]}   placeholder="0"    onChange={e=>set(p.qualKey,  e.target.value)}   style={{textAlign:'center'}}/>
+                  <input type="number" value={m[p.descKey]}   placeholder="0"    onChange={e=>set(p.descKey,  e.target.value)}   style={{textAlign:'center'}}/>
                   <input type="number" value={m[p.investKey]} placeholder="0,00" onChange={e=>set(p.investKey,e.target.value)}/>
                 </React.Fragment>
               ))}
-              {/* Totals row */}
+              {/* Totals row — investment is always auto-computed */}
               {(leadsTotal > 0 || investTotal > 0) && (
                 <React.Fragment>
-                  <div style={{display:'flex',alignItems:'center',paddingTop:6,borderTop:'1px solid var(--ink-border-soft)'}}>
+                  <div style={{display:'flex',alignItems:'center',gap:5,paddingTop:8,borderTop:'1px solid var(--ink-border-soft)'}}>
                     <span style={{fontSize:10.5,fontWeight:700,color:'var(--mist-muted)',textTransform:'uppercase',letterSpacing:'.05em'}}>Total</span>
                   </div>
-                  <div style={{textAlign:'center',paddingTop:6,borderTop:'1px solid var(--ink-border-soft)',fontWeight:700,fontSize:15,color:'var(--mist)'}}>{leadsTotal||'—'}</div>
-                  <div style={{textAlign:'center',paddingTop:6,borderTop:'1px solid var(--ink-border-soft)',fontWeight:600,fontSize:13,color:'var(--mist)'}}>{leadsQual||'—'}</div>
-                  <div style={{paddingTop:6,borderTop:'1px solid var(--ink-border-soft)',fontWeight:700,fontSize:13,fontFamily:'var(--mono)',color:'var(--mist)'}}>{investTotal>0?fmtBRL(investTotal):'—'}</div>
+                  <div style={{textAlign:'center',paddingTop:8,borderTop:'1px solid var(--ink-border-soft)',fontWeight:700,fontSize:15,color:'var(--mist)'}}>{leadsTotal||'—'}</div>
+                  <div style={{textAlign:'center',paddingTop:8,borderTop:'1px solid var(--ink-border-soft)',fontWeight:600,fontSize:13,color:'var(--mist)'}}>{leadsQual||'—'}</div>
+                  <div style={{textAlign:'center',paddingTop:8,borderTop:'1px solid var(--ink-border-soft)',fontWeight:600,fontSize:13,color:'#f56565'}}>{descTotal||'—'}</div>
+                  <div style={{paddingTop:8,borderTop:'1px solid var(--ink-border-soft)'}}>
+                    <div style={{fontWeight:700,fontSize:13,fontFamily:'var(--mono)',color:'var(--mist)'}}>{investTotal>0?fmtBRL(investTotal):'—'}</div>
+                    {investTotal>0&&<div style={{fontSize:9.5,color:'var(--mist-muted)',marginTop:2,letterSpacing:'.03em'}}>Σ calculado automaticamente</div>}
+                  </div>
                 </React.Fragment>
               )}
             </div>
@@ -1164,6 +1179,7 @@
             ...p,
             leads:  num(entry.metrics[p.leadsKey]),
             qual:   num(entry.metrics[p.qualKey]),
+            desc:   num(entry.metrics[p.descKey]),
             invest: num(entry.metrics[p.investKey]),
           })).filter(p => p.leads > 0 || p.invest > 0);
           if (rows.length === 0) return null;
@@ -1180,6 +1196,7 @@
                       <th style={{textAlign:'left',padding:'0 12px 10px 0',fontSize:10.5,fontWeight:700,color:'var(--mist-muted)',textTransform:'uppercase',letterSpacing:'.05em',whiteSpace:'nowrap'}}>Plataforma</th>
                       <th style={{textAlign:'right',padding:'0 12px 10px',fontSize:10.5,fontWeight:700,color:'var(--mist-muted)',textTransform:'uppercase',letterSpacing:'.05em'}}>Leads</th>
                       <th style={{textAlign:'right',padding:'0 12px 10px',fontSize:10.5,fontWeight:700,color:'var(--mist-muted)',textTransform:'uppercase',letterSpacing:'.05em'}}>Qualif.</th>
+                      <th style={{textAlign:'right',padding:'0 12px 10px',fontSize:10.5,fontWeight:700,color:'#f56565',textTransform:'uppercase',letterSpacing:'.05em'}}>Descartes</th>
                       <th style={{textAlign:'right',padding:'0 0 10px',fontSize:10.5,fontWeight:700,color:'var(--mist-muted)',textTransform:'uppercase',letterSpacing:'.05em',whiteSpace:'nowrap'}}>Investimento</th>
                     </tr>
                   </thead>
@@ -1194,6 +1211,7 @@
                         </td>
                         <td style={{textAlign:'right',padding:'9px 12px',fontWeight:600,color:'var(--mist)'}}>{p.leads||'—'}</td>
                         <td style={{textAlign:'right',padding:'9px 12px',color:'var(--mist-dim)'}}>{p.qual||'—'}</td>
+                        <td style={{textAlign:'right',padding:'9px 12px',color:p.desc>0?'#f56565':'var(--mist-muted)'}}>{p.desc||'—'}</td>
                         <td style={{textAlign:'right',padding:'9px 0 9px 12px',fontFamily:'var(--mono)'}}>{p.invest>0?fmtBRL(p.invest):'—'}</td>
                       </tr>
                     ))}
@@ -1203,6 +1221,7 @@
                       <td style={{padding:'9px 12px 0 0',fontWeight:700,fontSize:10.5,color:'var(--mist-muted)',textTransform:'uppercase',letterSpacing:'.05em'}}>Total</td>
                       <td style={{textAlign:'right',padding:'9px 12px 0',fontWeight:700,color:'var(--mist)'}}>{totLeads||'—'}</td>
                       <td style={{textAlign:'right',padding:'9px 12px 0',fontWeight:700,color:'var(--mist)'}}>{totQual||'—'}</td>
+                      <td style={{textAlign:'right',padding:'9px 12px 0',fontWeight:700,color:'#f56565'}}>{rows.reduce((s,r)=>s+r.desc,0)||'—'}</td>
                       <td style={{textAlign:'right',padding:'9px 0 0 12px',fontWeight:700,fontFamily:'var(--mono)',color:'var(--mist)'}}>{totInvest>0?fmtBRL(totInvest):'—'}</td>
                     </tr>
                   </tfoot>
