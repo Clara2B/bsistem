@@ -4,7 +4,7 @@ import {
   Plus, X, Trash2, Edit3, Download, ExternalLink, Upload,
   CheckCircle2, Circle, Clock, AlertCircle, Search,
   ChevronLeft, ChevronRight, MoreVertical, Filter, Image as ImageIcon,
-  Sparkles, FileUp, Link as LinkIcon, Pencil, Check, Menu, ZoomIn, Settings, Eye, EyeOff, Sun, Moon, Layers
+  Sparkles, FileUp, Link as LinkIcon, Pencil, Check, Menu, ZoomIn, Settings, Eye, EyeOff, Sun, Moon, Layers, BarChart2
 } from 'lucide-react';
 
 /* ============================================================
@@ -1216,6 +1216,21 @@ function Header({ mainSection, setMainSection, user, onLogout, onMenuToggle, the
       </nav>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <a
+          href="leads.html"
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 5,
+            padding: '5px 12px', borderRadius: 8,
+            background: 'var(--brand-soft)', color: 'var(--brand-cyan)',
+            border: '1px solid rgba(29,228,240,0.18)',
+            fontSize: 12, fontWeight: 600, textDecoration: 'none',
+            letterSpacing: '0.03em', transition: 'opacity 0.15s',
+          }}
+          onMouseEnter={e => e.currentTarget.style.opacity = '0.8'}
+          onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+        >
+          <BarChart2 size={13} /> Leads
+        </a>
         <button
           className="btn-icon"
           onClick={onToggleTheme}

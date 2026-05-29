@@ -1,0 +1,1651 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>B.BOTH — Leads</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <style>
+    @media print {
+      .no-print { display: none !important; }
+      .print-section { break-inside: avoid; }
+      body { background: #fff !important; color: #111 !important; }
+      @page { size: A4; margin: 15mm 18mm; }
+    }
+  </style>
+</head>
+<body style="margin:0;padding:0;">
+  <div id="root"></div>
+
+  <script src="vendor/react.min.js"></script>
+  <script src="vendor/react-dom.min.js"></script>
+  <script src="vendor/babel.min.js"></script>
+  <script src="vendor/lucide.min.js"></script>
+
+  <script>
+  function makeIcon(name) {
+    return function(props) {
+      const el = window.lucide[name];
+      if (!el) return null;
+      const { size = 24, color = 'currentColor', strokeWidth = 2, style, className, ...rest } = props || {};
+      return React.createElement('svg', {
+        xmlns: 'http://www.w3.org/2000/svg', width: size, height: size,
+        viewBox: '0 0 24 24', fill: 'none', stroke: color,
+        strokeWidth, strokeLinecap: 'round', strokeLinejoin: 'round',
+        style, className, ...rest,
+      }, ...(el[2] || []).map((c, i) => React.createElement(c[0], { key: i, ...c[1] })));
+    };
+  }
+  const X            = makeIcon('X');
+  const Plus         = makeIcon('Plus');
+  const ChevronLeft  = makeIcon('ChevronLeft');
+  const ChevronRight = makeIcon('ChevronRight');
+  const Download     = makeIcon('Download');
+  const Printer      = makeIcon('Printer');
+  const TrendingUp   = makeIcon('TrendingUp');
+  const TrendingDown = makeIcon('TrendingDown');
+  const Users        = makeIcon('Users');
+  const UserCheck    = makeIcon('UserCheck');
+  const Calendar     = makeIcon('Calendar');
+  const CheckCircle2 = makeIcon('CheckCircle2');
+  const FileText     = makeIcon('FileText');
+  const Target       = makeIcon('Target');
+  const DollarSign   = makeIcon('DollarSign');
+  const BarChart2    = makeIcon('BarChart2');
+  const Activity     = makeIcon('Activity');
+  const ArrowLeft    = makeIcon('ArrowLeft');
+  const Sun          = makeIcon('Sun');
+  const Moon         = makeIcon('Moon');
+  const Edit3        = makeIcon('Edit3');
+  const Trash2       = makeIcon('Trash2');
+  const Upload       = makeIcon('Upload');
+  const ImageIcon    = makeIcon('Image');
+  const Award        = makeIcon('Award');
+  const AlertCircle  = makeIcon('AlertCircle');
+  const Layers       = makeIcon('Layers');
+  const Save         = makeIcon('Save');
+  const Filter       = makeIcon('Filter');
+  </script>
+
+  <script type="text/babel">
+  const { useState, useEffect, useRef, useMemo, useCallback } = React;
+
+  /* ============================================================
+     DESIGN TOKENS
+  ============================================================ */
+  const DARK = {
+    inkDeep:'#050608', inkBase:'#0d1117', inkRaised:'#141922', inkSoft:'#1a2130',
+    inkBorder:'#1e2940', inkBorderSoft:'#1a2436', inkHover:'#1e2d44',
+    mist:'#e6eaf3', mistDim:'#8896a8', mistMuted:'#4a5568',
+    brandBlue:'#0166fc', brandCyan:'#1de4f0', brandMid:'#009bed',
+    brandSoft:'rgba(1,102,252,0.12)', brandGlow:'rgba(1,102,252,0.22)',
+    cyanSoft:'rgba(29,228,240,0.10)',
+    danger:'#f56565', warn:'#f5b342', success:'#1de4f0',
+  };
+  const LIGHT = {
+    inkDeep:'#f0f3f9', inkBase:'#ffffff', inkRaised:'#f7f9fc', inkSoft:'#edf0f7',
+    inkBorder:'#cdd3e0', inkBorderSoft:'#dfe4ef', inkHover:'#e4e9f3',
+    mist:'#0d1117', mistDim:'#4a5568', mistMuted:'#8896a8',
+    brandBlue:'#0166fc', brandCyan:'#0088a8', brandMid:'#009bed',
+    brandSoft:'rgba(1,102,252,0.10)', brandGlow:'rgba(1,102,252,0.22)',
+    cyanSoft:'rgba(0,136,168,0.10)',
+    danger:'#dc2626', warn:'#b45309', success:'#047857',
+  };
+  const BRAND_GRADIENT = 'linear-gradient(90deg,#0166fc 0%,#009bed 50%,#1de4f0 100%)';
+
+  /* ============================================================
+     STORAGE
+  ============================================================ */
+  const storage = {
+    get: k => Promise.resolve(localStorage.getItem(k)),
+    set: (k,v) => Promise.resolve(localStorage.setItem(k, typeof v==='string' ? v : JSON.stringify(v))),
+    delete: k => Promise.resolve(localStorage.removeItem(k)),
+    getJSON: (k, def) => { try { const v=localStorage.getItem(k); return Promise.resolve(v?JSON.parse(v):def); } catch { return Promise.resolve(def); } },
+  };
+  const K = {
+    entries:   'leads:entries:v1',
+    companies: 'leads:companies:v1',
+    screenshot: id => `leads:img:${id}`,
+    theme: 'bboth:theme',
+  };
+
+  const COMPANY_COLORS = ['#0166fc','#7c3aed','#059669','#ea580c','#db2777','#d97706','#0891b2','#be123c'];
+  function companyColor(companies, id) {
+    const idx = companies.findIndex(c => c.id === id);
+    return COMPANY_COLORS[idx >= 0 ? idx % COMPANY_COLORS.length : 0];
+  }
+
+  /* ============================================================
+     UTILITIES
+  ============================================================ */
+  function uid() { return Math.random().toString(36).slice(2)+Date.now().toString(36); }
+  function num(v) { return parseFloat(String(v).replace(',','.')) || 0; }
+  function fmtBRL(v) { return `R$ ${num(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}`; }
+  function fmtPct(v,d=1) { return `${num(v).toFixed(d)}%`; }
+  function pctDelta(a,b) { if(!b||b===0) return null; return Math.round((a-b)/b*100); }
+
+  async function fileToBase64(file) {
+    return new Promise((res,rej) => {
+      const r = new FileReader();
+      r.onload = () => res(r.result);
+      r.onerror = rej;
+      r.readAsDataURL(file);
+    });
+  }
+
+  /* ============================================================
+     WEEK / CALENDAR HELPERS
+  ============================================================ */
+  const MONTHS_PT = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const MONTHS_FULL_PT = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+  function getISOWeekNum(d) {
+    const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    const dayNum = date.getUTCDay() || 7;
+    date.setUTCDate(date.getUTCDate() + 4 - dayNum);
+    const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+    return { week: Math.ceil((((date-yearStart)/86400000)+1)/7), year: date.getUTCFullYear() };
+  }
+
+  function getWeekDates(year, week) {
+    const jan4 = new Date(Date.UTC(year, 0, 4));
+    const start = new Date(jan4);
+    start.setUTCDate(jan4.getUTCDate() - (jan4.getUTCDay()||7) + 1 + (week-1)*7);
+    const end = new Date(start);
+    end.setUTCDate(start.getUTCDate()+6);
+    return { start, end };
+  }
+
+  function weekInfoFromDate(d) {
+    const { week, year } = getISOWeekNum(d);
+    const { start, end } = getWeekDates(year, week);
+    const fmtD = dt => `${String(dt.getUTCDate()).padStart(2,'0')} ${MONTHS_PT[dt.getUTCMonth()]}`;
+    const label = `Sem. ${week} · ${fmtD(start)} – ${fmtD(end)} ${end.getUTCFullYear()}`;
+    const key = `${year}-W${String(week).padStart(2,'0')}`;
+    return { week, year, start, end, key, label };
+  }
+
+  function navigateWeek(info, dir) {
+    // Add/subtract 7 days in exact milliseconds
+    const ms = info.start.getTime() + dir * 7 * 86400000;
+    const d = new Date(ms);
+    // Reconstruct at LOCAL noon using UTC date components.
+    // This avoids timezone boundary bugs where UTC-midnight of "next Monday"
+    // falls on "this Sunday" in local time, making getISOWeekNum return the same week.
+    return weekInfoFromDate(new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 12, 0, 0));
+  }
+
+  function getCurrentWeekInfo() { return weekInfoFromDate(new Date()); }
+
+  function getMonthEntries(entries, year, month) {
+    // Include entries whose week start falls in the given month
+    return entries.filter(e => {
+      const { start } = getWeekDates(e.year, e.week);
+      return start.getUTCFullYear() === year && start.getUTCMonth() === month;
+    });
+  }
+
+  /* ============================================================
+     METRICS SCHEMA
+  ============================================================ */
+  function emptyMetrics() {
+    return {
+      leadsTotal:'', leadsQualificados:'',
+      vendas:'', valorVenda:'',
+      investimentoMidia:'',
+      observations:'',
+    };
+  }
+
+  /* ============================================================
+     AUTO ANALYSIS GENERATOR
+  ============================================================ */
+  function generateAnalysis(cur, prev) {
+    const c = {
+      leadsTotal: num(cur.leadsTotal), leadsQualificados: num(cur.leadsQualificados),
+      vendas: num(cur.vendas || cur.fechamentos), // backward compat
+      valorVenda: num(cur.valorVenda),
+      investimentoMidia: num(cur.investimentoMidia),
+    };
+    const convRate = c.leadsTotal > 0 ? (c.vendas/c.leadsTotal*100) : 0;
+    const qualRate = c.leadsTotal > 0 ? (c.leadsQualificados/c.leadsTotal*100) : 0;
+    const cpl = (c.leadsTotal > 0 && c.investimentoMidia > 0) ? c.investimentoMidia/c.leadsTotal : null;
+    const roi = (c.investimentoMidia > 0 && c.valorVenda > 0) ? ((c.valorVenda - c.investimentoMidia)/c.investimentoMidia*100) : null;
+    const p = prev ? {
+      leadsTotal: num(prev.leadsTotal),
+      vendas: num(prev.vendas || prev.fechamentos),
+      investimentoMidia: num(prev.investimentoMidia),
+    } : null;
+    const leadsDelta = p && p.leadsTotal > 0 ? pctDelta(c.leadsTotal, p.leadsTotal) : null;
+    const vendasDelta = p && p.vendas > 0 ? pctDelta(c.vendas, p.vendas) : null;
+
+    // Performance score (0–100)
+    let score = 45;
+    if (leadsDelta !== null) score += Math.min(18, Math.max(-18, leadsDelta/3));
+    if (c.vendas > 0) score += 10;
+    if (convRate > 12) score += 18; else if (convRate > 6) score += 9; else if (convRate > 0) score += 3;
+    if (qualRate > 60) score += 9;
+    if (cpl && cpl < 40) score += 9; else if (cpl && cpl < 80) score += 4;
+    score = Math.round(Math.max(0, Math.min(100, score)));
+
+    let badge, badgeColor, badgeBg;
+    if (score >= 76) { badge='Excelente'; badgeColor='#1de4f0'; badgeBg='rgba(29,228,240,0.12)'; }
+    else if (score >= 55) { badge='Bom'; badgeColor='#0166fc'; badgeBg='rgba(1,102,252,0.12)'; }
+    else if (score >= 35) { badge='Regular'; badgeColor='#f5b342'; badgeBg='rgba(245,179,66,0.12)'; }
+    else { badge='Crítico'; badgeColor='#f56565'; badgeBg='rgba(245,101,101,0.12)'; }
+
+    const paragraphs = [];
+
+    // Captação
+    if (c.leadsTotal > 0) {
+      let t = `Foram captados ${c.leadsTotal} lead${c.leadsTotal!==1?'s':''} nesta semana`;
+      if (leadsDelta !== null) {
+        const dir = leadsDelta>0?'aumento':leadsDelta<0?'queda':'estável';
+        if (leadsDelta!==0) t += `, representando ${dir} de ${Math.abs(leadsDelta)}% em relação à semana anterior (${p.leadsTotal} leads)`;
+      }
+      t += '. ';
+      if (c.leadsQualificados > 0) {
+        t += `Dos leads captados, ${c.leadsQualificados} foram qualificados (${fmtPct(qualRate)}), `;
+        t += qualRate>=60 ? 'indicando um bom aproveitamento da base captada.' : qualRate>=40 ? 'com aproveitamento moderado — há espaço para melhorar a segmentação.' : 'sugerindo necessidade de refinamento nos critérios de captação.';
+      }
+      paragraphs.push({ title:'Captação de Leads', text:t });
+    } else {
+      paragraphs.push({ title:'Captação de Leads', text:'Nenhum lead registrado para esta semana.' });
+    }
+
+    // Vendas
+    if (c.leadsTotal > 0) {
+      let t = `A taxa de conversão de leads em vendas foi de ${fmtPct(convRate)}`;
+      if (c.vendas > 0) {
+        t += ` (${c.vendas} venda${c.vendas!==1?'s':''} em ${c.leadsTotal} leads)`;
+        if (vendasDelta !== null) {
+          t += `, com ${vendasDelta>0?'aumento':'queda'} de ${Math.abs(vendasDelta)}% nas vendas em relação à semana anterior`;
+        }
+      }
+      t += '. ';
+      if (c.valorVenda > 0) {
+        t += `O valor total de vendas gerado foi de ${fmtBRL(c.valorVenda)}`;
+        t += c.vendas > 0 ? `, com ticket médio de ${fmtBRL(c.valorVenda/c.vendas)}.` : '.';
+      }
+      paragraphs.push({ title:'Vendas', text:t });
+    }
+
+    // Investimento
+    if (c.investimentoMidia > 0) {
+      let t = `O investimento em mídia desta semana foi de ${fmtBRL(c.investimentoMidia)}. `;
+      if (cpl !== null) {
+        t += `O custo por lead (CPL) ficou em ${fmtBRL(cpl)}`;
+        t += cpl<30?', um resultado excelente para a campanha.':cpl<60?', dentro de um patamar competitivo.':' — considere revisar a segmentação ou criativo das campanhas para otimização.';
+      }
+      if (roi !== null) {
+        t += ` O ROI da mídia foi de ${roi>=0?'+':''}${roi.toFixed(1)}%`;
+        t += roi>=100?' — retorno expressivo.':roi>=0?' — investimento positivo.':' — semana com retorno abaixo do investimento, atenção à estratégia.';
+      }
+      paragraphs.push({ title:'Investimento & ROI', text:t });
+    }
+
+    return {
+      paragraphs, score, badge, badgeColor, badgeBg,
+      convRate, qualRate, cpl, roi, leadsDelta, vendasDelta,
+      kpis: {
+        leadsTotal: c.leadsTotal, leadsQualificados: c.leadsQualificados,
+        vendas: c.vendas, valorVenda: c.valorVenda,
+        investimentoMidia: c.investimentoMidia,
+        convRate, cpl,
+      },
+    };
+  }
+
+  /* ============================================================
+     SVG CHART COMPONENTS
+  ============================================================ */
+  function BarChart({ data, color='#0166fc', height=160, unit='' }) {
+    if (!data?.length) return <div style={{color:'var(--mist-muted)',fontSize:12,padding:'20px 0',textAlign:'center'}}>Sem dados suficientes</div>;
+    const vals = data.map(d=>d.value);
+    const max = Math.max(...vals, 1);
+    const barW = Math.max(4, 80/data.length);
+    const PT = 20; // top padding — keeps value label from being clipped when bar hits 100%
+    const PB = 28; // bottom padding — space for week label
+    const totalH = height + PT + PB;
+    return (
+      <svg viewBox={`0 0 100 ${totalH}`} style={{width:'100%',height:totalH,display:'block'}} preserveAspectRatio="none">
+        {data.map((d, i) => {
+          const x = (i / data.length) * 100 + (100/data.length - barW)/2;
+          const bh = Math.round((d.value/max)*height);
+          const y = PT + (height - bh);
+          return (
+            <g key={i}>
+              <rect x={`${x}%`} y={y} width={`${barW}%`} height={Math.max(bh,1)} fill={color} rx={2} opacity={0.85} />
+              <text x={`${x+barW/2}%`} y={PT+height+18} textAnchor="middle" fill="currentColor" fontSize={8} opacity={0.55}>{d.label}</text>
+              {d.value > 0 && <text x={`${x+barW/2}%`} y={y-5} textAnchor="middle" fill="currentColor" fontSize={8} fontWeight={600}>{d.value}{unit}</text>}
+            </g>
+          );
+        })}
+        <line x1="0" y1={PT+height} x2="100%" y2={PT+height} stroke="currentColor" strokeWidth={0.5} opacity={0.2}/>
+      </svg>
+    );
+  }
+
+  function LineChart({ data, color='#1de4f0', height=140, unit='%' }) {
+    if (!data?.length || data.length < 2) return <div style={{color:'var(--mist-muted)',fontSize:12,padding:'20px 0',textAlign:'center'}}>Sem dados suficientes (mín. 2 semanas)</div>;
+    const vals = data.map(d=>d.value);
+    const max = Math.max(...vals, 1);
+    const min = Math.min(...vals, 0);
+    const range = max - min || 1;
+    const PT = 20;
+    const PB = 28;
+    const totalH = height + PT + PB;
+    const pts = data.map((d, i) => ({
+      x: data.length > 1 ? (i/(data.length-1))*98+1 : 50,
+      y: PT + (height - Math.round(((d.value-min)/range)*height)),
+      ...d,
+    }));
+    const pathD = pts.map((p,i) => `${i===0?'M':'L'} ${p.x}% ${p.y}`).join(' ');
+    return (
+      <svg viewBox={`0 0 100 ${totalH}`} style={{width:'100%',height:totalH,display:'block'}} preserveAspectRatio="none">
+        <path d={pathD} fill="none" stroke={color} strokeWidth={2} vectorEffect="non-scaling-stroke"/>
+        {pts.map((p,i)=>(
+          <g key={i}>
+            <circle cx={`${p.x}%`} cy={p.y} r={3.5} fill={color} vectorEffect="non-scaling-stroke"/>
+            <text x={`${p.x}%`} y={PT+height+18} textAnchor="middle" fill="currentColor" fontSize={8} opacity={0.55}>{p.label}</text>
+            <text x={`${p.x}%`} y={p.y-7} textAnchor="middle" fill="currentColor" fontSize={8} fontWeight={600}>{p.value.toFixed(1)}{unit}</text>
+          </g>
+        ))}
+        <line x1="0" y1={PT+height} x2="100%" y2={PT+height} stroke="currentColor" strokeWidth={0.5} opacity={0.2}/>
+      </svg>
+    );
+  }
+
+  function FunnelViz({ steps }) {
+    if (!steps?.length) return null;
+    const max = steps[0]?.value || 1;
+    const COLORS_SEQ = ['#0166fc','#009bed','#1de4f0','#f5b342','#1de4f0'];
+    return (
+      <div style={{display:'flex',flexDirection:'column',gap:10}}>
+        {steps.map((step, i) => {
+          const pct = max > 0 ? (step.value/max)*100 : 0;
+          const fromPrev = i>0 && steps[i-1].value>0 ? (step.value/steps[i-1].value*100).toFixed(1) : null;
+          return (
+            <div key={i} className="print-section">
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:5}}>
+                <span style={{fontSize:12.5,color:'var(--mist-dim)'}}>{step.label}</span>
+                <div style={{display:'flex',gap:10,alignItems:'center'}}>
+                  {fromPrev && <span style={{fontSize:11,color:'var(--mist-muted)'}}>↳ {fromPrev}% conv.</span>}
+                  <span style={{fontSize:14,fontWeight:600,color:'var(--mist)',minWidth:28,textAlign:'right'}}>{step.value}</span>
+                </div>
+              </div>
+              <div style={{height:22,background:'var(--ink-soft)',borderRadius:6,overflow:'hidden'}}>
+                <div style={{height:'100%',width:`${pct}%`,background:COLORS_SEQ[i]||'#0166fc',borderRadius:6,transition:'width 0.5s ease'}}/>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
+  function HBarChart({ data }) {
+    const max = Math.max(...data.map(d=>d.value), 1);
+    return (
+      <div style={{display:'flex',flexDirection:'column',gap:10}}>
+        {data.map((d, i) => (
+          <div key={i}>
+            <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
+              <span style={{fontSize:12.5,color:'var(--mist-dim)'}}>{d.label}</span>
+              <span style={{fontSize:12.5,fontWeight:600,color:'var(--mist)'}}>{d.value} ({Math.round(d.value/max*100)}%)</span>
+            </div>
+            <div style={{height:10,background:'var(--ink-soft)',borderRadius:5}}>
+              <div style={{height:'100%',width:`${d.value/max*100}%`,background:d.color||'#0166fc',borderRadius:5,transition:'width 0.4s ease'}}/>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  /* ============================================================
+     GLOBAL STYLES
+  ============================================================ */
+  function GlobalStyles({ theme }) {
+    const C = theme==='light' ? LIGHT : DARK;
+    const css = `
+      *, *::before, *::after { box-sizing: border-box; }
+      html { font-size: 16px; }
+      body {
+        margin: 0; padding: 0;
+        font-family: 'Geist', 'Inter', system-ui, sans-serif;
+        background: ${C.inkDeep}; color: ${C.mist};
+        -webkit-font-smoothing: antialiased;
+      }
+      :root {
+        --ink-deep:${C.inkDeep}; --ink-base:${C.inkBase}; --ink-raised:${C.inkRaised};
+        --ink-soft:${C.inkSoft}; --ink-border:${C.inkBorder}; --ink-border-soft:${C.inkBorderSoft};
+        --ink-hover:${C.inkHover}; --mist:${C.mist}; --mist-dim:${C.mistDim};
+        --mist-muted:${C.mistMuted}; --brand-blue:${C.brandBlue}; --brand-cyan:${C.brandCyan};
+        --brand-mid:${C.brandMid}; --brand-soft:${C.brandSoft}; --brand-glow:${C.brandGlow};
+        --mono: 'Geist Mono', 'Fira Mono', monospace;
+      }
+      input, textarea, select {
+        width: 100%; padding: 10px 13px;
+        background: var(--ink-raised); border: 1px solid var(--ink-border);
+        border-radius: 9px; color: var(--mist); font-size: 13.5px;
+        font-family: inherit; outline: none; transition: border-color 0.15s;
+      }
+      input:focus, textarea:focus { border-color: var(--brand-blue); }
+      textarea { resize: vertical; min-height: 80px; }
+      input[type=number] { -moz-appearance: textfield; }
+      input[type=number]::-webkit-inner-spin-button { display: none; }
+      .label {
+        display: block; font-size: 11px; font-weight: 600;
+        color: var(--mist-muted); text-transform: uppercase;
+        letter-spacing: .06em; margin-bottom: 6px;
+      }
+      .btn {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 8px 14px; border-radius: 9px; border: 1px solid var(--ink-border);
+        background: var(--ink-raised); color: var(--mist-dim);
+        font-size: 13px; font-family: inherit; cursor: pointer;
+        transition: all .15s; white-space: nowrap;
+      }
+      .btn:hover { background: var(--ink-hover); color: var(--mist); }
+      .btn:disabled { opacity: .45; cursor: not-allowed; }
+      .btn-primary {
+        background: ${C.brandBlue}; color: #fff;
+        border-color: transparent;
+      }
+      .btn-primary:hover { opacity: .88; background: ${C.brandBlue}; color: #fff; }
+      .btn-icon {
+        width: 34px; height: 34px; border-radius: 8px;
+        border: 1px solid var(--ink-border); background: var(--ink-raised);
+        color: var(--mist-dim); cursor: pointer; display: flex;
+        align-items: center; justify-content: center; transition: all .15s;
+        flex-shrink: 0;
+      }
+      .btn-icon:hover { background: var(--ink-hover); color: var(--mist); }
+      .card {
+        background: var(--ink-base); border: 1px solid var(--ink-border);
+        border-radius: 14px; transition: border-color .15s;
+      }
+      .card:hover { border-color: var(--ink-border-soft); }
+      .mono { font-family: var(--mono); }
+      .tab-pill {
+        padding: 7px 16px; border-radius: 999px; border: 1px solid transparent;
+        background: transparent; color: var(--mist-dim); font-size: 13px;
+        font-family: inherit; cursor: pointer; transition: all .15s; white-space: nowrap;
+      }
+      .tab-pill.active {
+        background: var(--ink-raised); border-color: var(--ink-border);
+        color: var(--mist); font-weight: 500;
+      }
+      .section-title {
+        font-size: 11px; font-weight: 700; color: var(--mist-muted);
+        text-transform: uppercase; letter-spacing: .08em;
+        margin: 0 0 14px; padding-bottom: 10px;
+        border-bottom: 1px solid var(--ink-border-soft);
+      }
+      .kpi-card {
+        background: var(--ink-raised); border: 1px solid var(--ink-border);
+        border-radius: 12px; padding: 16px 18px;
+      }
+      .form-grid { display: grid; gap: 14px; }
+      .form-grid-2 { grid-template-columns: 1fr 1fr; }
+      .form-grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+      /* 2-col grid for charts/panels — collapses on mobile */
+      .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 24px; }
+      /* Compact data table */
+      .data-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+      .data-table th { padding: 9px 10px; text-align: left; font-size: 10.5px; font-weight: 700;
+        color: var(--mist-muted); text-transform: uppercase; letter-spacing: .05em; white-space: nowrap; }
+      .data-table td { padding: 7px 10px; }
+      /* Week navigator */
+      .week-nav { display: flex; align-items: center; gap: 10px; margin-bottom: 28px;
+        justify-content: center; flex-wrap: wrap; }
+      .week-btn { background: none; border: none; cursor: pointer; padding: 4px 10px;
+        border-radius: 8px; color: var(--mist); font-family: inherit; transition: background .15s; }
+      .week-btn:hover { background: var(--ink-raised); }
+
+      @media (max-width: 600px) {
+        .form-grid-2, .form-grid-3 { grid-template-columns: 1fr; }
+        .grid-2 { grid-template-columns: 1fr; }
+        .kpi-card { padding: 12px 14px; }
+        .kpi-value { font-size: 20px !important; }
+        .tab-pill { padding: 5px 11px; font-size: 12px; }
+        .leads-header-inner { height: auto !important; padding: 10px 0 !important; flex-wrap: wrap; gap: 8px !important; }
+        .leads-header-tabs { gap: 2px; overflow-x: auto; flex-wrap: nowrap !important; padding-bottom: 2px; }
+        main { padding-bottom: 40px; }
+      }
+
+      /* Screen-only / print-only helpers */
+      .print-only { display: none; }
+      @media print { .print-only { display: block; } }
+
+      /* ===== PRINT STYLES ===== */
+      @media print {
+        :root {
+          --ink-deep: #ffffff; --ink-base: #ffffff; --ink-raised: #f5f7fa;
+          --ink-soft: #eef0f5; --ink-border: #d0d7e3; --ink-border-soft: #dde2ef;
+          --mist: #0d1117; --mist-dim: #4a5568; --mist-muted: #8896a8;
+          --brand-blue: #0166fc; --brand-cyan: #0077aa;
+        }
+        body { background: #fff !important; }
+        .no-print { display: none !important; }
+        .print-break { break-before: page; }
+        .kpi-card { break-inside: avoid; }
+        .print-section { break-inside: avoid; }
+        svg text { fill: #333 !important; }
+        .card { border: 1px solid #dde2ef !important; box-shadow: none !important; }
+      }
+    `;
+    useEffect(() => {
+      const el = document.createElement('style');
+      el.id = 'leads-global-styles';
+      el.textContent = css;
+      const existing = document.getElementById('leads-global-styles');
+      if (existing) existing.replaceWith(el); else document.head.appendChild(el);
+    }, [css]);
+    return null;
+  }
+
+  /* font injection */
+  function useFontInjection() {
+    useEffect(() => {
+      if (!document.getElementById('gfonts-leads')) {
+        const l = document.createElement('link');
+        l.id = 'gfonts-leads'; l.rel = 'stylesheet';
+        l.href = 'https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;900&family=Geist+Mono:wght@400;500;600&display=swap';
+        document.head.appendChild(l);
+      }
+    }, []);
+  }
+
+  /* ============================================================
+     B.BOTH LOGO
+  ============================================================ */
+  function BBothLogo({ size = 22 }) {
+    const id = 'leads-logo-grad';
+    return (
+      <svg width={size * 3.6} height={size} viewBox="0 0 90 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id={id} x1="0" y1="0" x2="90" y2="0" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stopColor="#0166fc"/>
+            <stop offset="50%" stopColor="#009bed"/>
+            <stop offset="100%" stopColor="#1de4f0"/>
+          </linearGradient>
+        </defs>
+        <text x="0" y="18" fontFamily="'Geist','Inter',system-ui,sans-serif" fontWeight="900" fontSize="20" fill={`url(#${id})`} letterSpacing="-0.5">B.BOTH</text>
+      </svg>
+    );
+  }
+
+  /* ============================================================
+     TOAST
+  ============================================================ */
+  function Toast({ toasts }) {
+    return (
+      <div className="no-print" style={{position:'fixed',bottom:24,right:24,zIndex:9999,display:'flex',flexDirection:'column',gap:8}}>
+        {toasts.map(t => (
+          <div key={t.id} style={{
+            padding:'11px 18px', borderRadius:10, fontSize:13, fontWeight:500,
+            background: t.type==='error' ? '#f56565' : t.type==='warn' ? '#f5b342' : '#1de4f0',
+            color: t.type==='success' ? '#050608' : '#fff',
+            boxShadow:'0 4px 24px rgba(0,0,0,0.35)', animation:'fadeIn .18s ease',
+          }}>{t.msg}</div>
+        ))}
+      </div>
+    );
+  }
+
+  function useToast() {
+    const [toasts, setToasts] = useState([]);
+    const showToast = useCallback((type, msg) => {
+      const id = uid();
+      setToasts(t => [...t, {id, type, msg}]);
+      setTimeout(() => setToasts(t => t.filter(x => x.id !== id)), 3000);
+    }, []);
+    return { toasts, showToast };
+  }
+
+  /* ============================================================
+     ADD COMPANY MODAL
+  ============================================================ */
+  function AddCompanyModal({ companies, editCompany, onClose, onSave }) {
+    const [name, setName] = useState(editCompany?.name || '');
+    const usedIdxs = companies.map((_, i) => i);
+    const defaultColorIdx = editCompany
+      ? companies.findIndex(c => c.id === editCompany.id) % COMPANY_COLORS.length
+      : usedIdxs.length % COMPANY_COLORS.length;
+    const [colorIdx, setColorIdx] = useState(defaultColorIdx < 0 ? 0 : defaultColorIdx);
+
+    function submit() {
+      if (!name.trim()) return;
+      onSave({
+        id: editCompany?.id || uid(),
+        name: name.trim(),
+        colorIdx,
+      });
+    }
+
+    return (
+      <div onClick={onClose} style={{
+        position:'fixed',inset:0,zIndex:500,
+        background:'rgba(5,6,8,0.72)',backdropFilter:'blur(8px)',
+        display:'flex',alignItems:'center',justifyContent:'center',padding:20,
+      }}>
+        <div onClick={e=>e.stopPropagation()} style={{
+          background:'var(--ink-base)',border:'1px solid var(--ink-border)',
+          borderRadius:16,padding:'24px 26px',width:'100%',maxWidth:380,
+          display:'flex',flexDirection:'column',gap:18,
+        }}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+            <span style={{fontSize:15,fontWeight:600,color:'var(--mist)'}}>
+              {editCompany ? 'Editar empresa' : 'Nova empresa'}
+            </span>
+            <button className="btn-icon" onClick={onClose}><X size={16}/></button>
+          </div>
+
+          <div>
+            <label className="label">Nome da empresa</label>
+            <input
+              value={name} onChange={e=>setName(e.target.value)}
+              placeholder="Ex: Elite Seguros, Nexus Tech…"
+              autoFocus onKeyDown={e=>e.key==='Enter'&&submit()}
+            />
+          </div>
+
+          <div>
+            <label className="label">Cor de identificação</label>
+            <div style={{display:'flex',gap:8,flexWrap:'wrap',marginTop:4}}>
+              {COMPANY_COLORS.map((c, i) => (
+                <button
+                  key={i} onClick={()=>setColorIdx(i)}
+                  style={{
+                    width:32,height:32,borderRadius:8,background:c,border:'none',cursor:'pointer',
+                    outline: colorIdx===i ? `3px solid ${c}` : '3px solid transparent',
+                    outlineOffset: 2, transition:'outline 0.12s',
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+
+          <div style={{display:'flex',gap:8,justifyContent:'flex-end'}}>
+            <button className="btn" onClick={onClose}>Cancelar</button>
+            <button
+              className="btn btn-primary" onClick={submit} disabled={!name.trim()}
+              style={{background:COMPANY_COLORS[colorIdx]}}
+            >
+              {editCompany ? 'Salvar' : 'Criar empresa'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ============================================================
+     COMPANY BAR
+  ============================================================ */
+  function CompanyBar({ companies, selected, onSelect, onAdd, onEdit, onDelete }) {
+    const [hoverId, setHoverId] = useState(null);
+    const [confirmDelete, setConfirmDelete] = useState(null);
+
+    return (
+      <div className="no-print" style={{
+        borderBottom:'1px solid var(--ink-border)',
+        padding:'8px 24px',
+        display:'flex',alignItems:'center',gap:6,flexWrap:'wrap',
+        background:'var(--ink-base)',
+      }}>
+        <span style={{fontSize:11,fontWeight:700,color:'var(--mist-muted)',textTransform:'uppercase',letterSpacing:'.07em',marginRight:4,flexShrink:0}}>Empresa:</span>
+
+        {/* All */}
+        <button
+          onClick={()=>onSelect('all')}
+          style={{
+            padding:'5px 14px',borderRadius:999,border:'1px solid',fontSize:12.5,fontWeight:500,
+            cursor:'pointer',fontFamily:'inherit',transition:'all .15s',
+            background: selected==='all' ? 'var(--ink-raised)' : 'transparent',
+            borderColor: selected==='all' ? 'var(--ink-border)' : 'transparent',
+            color: selected==='all' ? 'var(--mist)' : 'var(--mist-muted)',
+          }}
+        >Todas</button>
+
+        {/* Company pills */}
+        {companies.map(c => {
+          const col = COMPANY_COLORS[c.colorIdx % COMPANY_COLORS.length];
+          const isSelected = selected === c.id;
+          const isHover = hoverId === c.id;
+          return (
+            <div
+              key={c.id}
+              style={{position:'relative',display:'inline-flex',alignItems:'center'}}
+              onMouseEnter={()=>setHoverId(c.id)}
+              onMouseLeave={()=>setHoverId(null)}
+            >
+              <button
+                onClick={()=>onSelect(c.id)}
+                style={{
+                  display:'inline-flex',alignItems:'center',gap:6,
+                  padding:'5px 12px',borderRadius:999,
+                  border:`1px solid ${isSelected ? col : 'transparent'}`,
+                  background: isSelected ? `${col}18` : isHover ? 'var(--ink-raised)' : 'transparent',
+                  color: isSelected ? col : 'var(--mist-dim)',
+                  fontSize:12.5,fontWeight:isSelected?600:400,
+                  cursor:'pointer',fontFamily:'inherit',transition:'all .15s',
+                }}
+              >
+                <span style={{width:8,height:8,borderRadius:'50%',background:col,flexShrink:0}}/>
+                {c.name}
+              </button>
+
+              {/* Edit / delete on hover */}
+              {isHover && (
+                <div style={{
+                  position:'absolute',top:'calc(100% + 4px)',left:0,zIndex:100,
+                  background:'var(--ink-base)',border:'1px solid var(--ink-border)',
+                  borderRadius:8,display:'flex',gap:0,overflow:'hidden',
+                  boxShadow:'0 4px 16px rgba(0,0,0,0.3)',
+                }}>
+                  <button onClick={()=>onEdit(c)} style={{padding:'6px 10px',background:'transparent',border:'none',color:'var(--mist-dim)',cursor:'pointer',fontSize:11.5,display:'flex',alignItems:'center',gap:4,fontFamily:'inherit'}} onMouseEnter={e=>e.currentTarget.style.background='var(--ink-raised)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                    <Edit3 size={11}/> Editar
+                  </button>
+                  <button onClick={()=>setConfirmDelete(c)} style={{padding:'6px 10px',background:'transparent',border:'none',color:'#f56565',cursor:'pointer',fontSize:11.5,display:'flex',alignItems:'center',gap:4,fontFamily:'inherit'}} onMouseEnter={e=>e.currentTarget.style.background='rgba(245,101,101,0.08)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                    <Trash2 size={11}/> Excluir
+                  </button>
+                </div>
+              )}
+            </div>
+          );
+        })}
+
+        {/* Add button */}
+        <button onClick={onAdd} className="btn" style={{padding:'4px 11px',fontSize:12,display:'flex',alignItems:'center',gap:4}}>
+          <Plus size={12}/> Empresa
+        </button>
+
+        {/* Confirm delete */}
+        {confirmDelete && (
+          <div onClick={()=>setConfirmDelete(null)} style={{position:'fixed',inset:0,zIndex:500,background:'rgba(5,6,8,0.6)',backdropFilter:'blur(6px)',display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
+            <div onClick={e=>e.stopPropagation()} style={{background:'var(--ink-base)',border:'1px solid var(--ink-border)',borderRadius:14,padding:'22px 24px',maxWidth:360,width:'100%'}}>
+              <div style={{fontSize:15,fontWeight:600,marginBottom:10,color:'var(--mist)'}}>Excluir "{confirmDelete.name}"?</div>
+              <div style={{fontSize:13,color:'var(--mist-dim)',marginBottom:18,lineHeight:1.5}}>Os registros de leads vinculados a esta empresa não serão apagados, mas ficarão sem empresa associada.</div>
+              <div style={{display:'flex',gap:8,justifyContent:'flex-end'}}>
+                <button className="btn" onClick={()=>setConfirmDelete(null)}>Cancelar</button>
+                <button className="btn" style={{background:'rgba(245,101,101,0.12)',color:'#f56565',borderColor:'rgba(245,101,101,0.25)'}} onClick={()=>{onDelete(confirmDelete.id);setConfirmDelete(null);}}>Excluir</button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  /* ============================================================
+     METRIC CARD
+  ============================================================ */
+  function KpiCard({ label, value, sub, delta, icon: Icon, color }) {
+    const C = color || 'var(--brand-blue)';
+    const dColor = delta === null ? null : delta >= 0 ? '#1de4f0' : '#f56565';
+    return (
+      <div className="kpi-card">
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:10}}>
+          <span style={{fontSize:11,fontWeight:600,color:'var(--mist-muted)',textTransform:'uppercase',letterSpacing:'.05em'}}>{label}</span>
+          {Icon && <Icon size={16} color={'var(--mist-muted)'} strokeWidth={1.8}/>}
+        </div>
+        <div className="kpi-value" style={{fontSize:24,fontWeight:700,color:'var(--mist)',lineHeight:1}}>
+          {value}
+        </div>
+        {(sub || delta !== undefined) && (
+          <div style={{display:'flex',alignItems:'center',gap:6,marginTop:6}}>
+            {sub && <span style={{fontSize:12,color:'var(--mist-dim)'}}>{sub}</span>}
+            {delta !== null && delta !== undefined && (
+              <span style={{fontSize:11,fontWeight:600,color:dColor}}>
+                {delta >= 0 ? '↑' : '↓'} {Math.abs(delta)}%
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  /* ============================================================
+     LEADS HEADER
+  ============================================================ */
+  function LeadsHeader({ tab, setTab, theme, onToggleTheme }) {
+    const TABS = [
+      { id:'semanal', label:'Análise Semanal' },
+      { id:'mensal',  label:'Relatório Mensal' },
+      { id:'perf',    label:'Análise de Performance' },
+    ];
+    return (
+      <header className="no-print" style={{
+        position:'sticky', top:0, zIndex:200,
+        background: theme==='light' ? 'rgba(255,255,255,0.9)' : 'rgba(5,6,8,0.88)',
+        backdropFilter:'blur(16px)', borderBottom:'1px solid var(--ink-border)',
+        padding:'0 24px',
+      }}>
+        <div className="leads-header-inner" style={{maxWidth:1100,margin:'0 auto',display:'flex',alignItems:'center',gap:12,height:58}}>
+          {/* Back link */}
+          <a href="index.html" style={{
+            display:'flex',alignItems:'center',gap:5,color:'var(--mist-dim)',
+            textDecoration:'none',fontSize:12,fontWeight:500,flexShrink:0,
+            padding:'5px 9px',borderRadius:8,border:'1px solid var(--ink-border)',
+            transition:'all .15s',
+          }} onMouseEnter={e=>e.currentTarget.style.color='var(--mist)'} onMouseLeave={e=>e.currentTarget.style.color='var(--mist-dim)'}>
+            <ArrowLeft size={13}/> Sistema
+          </a>
+
+          {/* Logo + badge */}
+          <div style={{display:'flex',alignItems:'center',gap:8,flexShrink:0}}>
+            <BBothLogo size={16}/>
+            <span style={{
+              fontSize:9.5,fontWeight:700,color:'var(--brand-cyan)',
+              background:'var(--brand-soft)',padding:'2px 7px',borderRadius:999,
+              textTransform:'uppercase',letterSpacing:'.08em',
+            }}>Leads</span>
+          </div>
+
+          {/* Tabs */}
+          <div className="leads-header-tabs" style={{display:'flex',gap:3,flex:1,justifyContent:'center',flexWrap:'wrap'}}>
+            {TABS.map(t => (
+              <button key={t.id} className={`tab-pill${tab===t.id?' active':''}`} onClick={()=>setTab(t.id)}>
+                {t.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Theme toggle */}
+          <button className="btn-icon no-print" onClick={onToggleTheme} title="Alternar tema" style={{flexShrink:0}}>
+            {theme==='dark' ? <Sun size={16}/> : <Moon size={16}/>}
+          </button>
+        </div>
+      </header>
+    );
+  }
+
+  /* ============================================================
+     FORM FIELD (defined outside WeekForm to avoid re-mount on every keystroke)
+  ============================================================ */
+  function FormField({ label, value, onChange, placeholder='', type='number' }) {
+    return (
+      <div>
+        <label className="label">{label}</label>
+        <input type={type} value={value} placeholder={placeholder} onChange={onChange}/>
+      </div>
+    );
+  }
+
+  /* ============================================================
+     WEEK FORM
+  ============================================================ */
+  function WeekForm({ weekInfo, initial, initialCompanyId, companies, onSave, onCancel, showToast }) {
+    const [m, setM] = useState(() => ({ ...emptyMetrics(), ...initial }));
+    const [companyId, setCompanyId] = useState(initialCompanyId || '');
+    const [screenshot, setScreenshot] = useState(null);
+    const [screenshotB64, setScreenshotB64] = useState(null);
+    const [saving, setSaving] = useState(false);
+    const fileRef = useRef(null);
+
+    const set = (k, v) => setM(prev => ({ ...prev, [k]: v }));
+
+    async function handleFile(e) {
+      const f = e.target.files?.[0];
+      if (!f) return;
+      if (f.size > 4*1024*1024) { showToast('error','Imagem muito grande (máx 4MB)'); return; }
+      const b64 = await fileToBase64(f);
+      setScreenshot(b64); setScreenshotB64(b64);
+    }
+
+    async function handleSubmit() {
+      if (!companyId) { showToast('error', 'Selecione uma empresa'); return; }
+      if (!m.leadsTotal) { showToast('error', 'Leads captados é obrigatório'); return; }
+      setSaving(true);
+      try { await onSave(m, screenshotB64, companyId || null); }
+      finally { setSaving(false); }
+    }
+
+    return (
+      <div style={{display:'flex',flexDirection:'column',gap:22}}>
+        {/* Empresa */}
+        <div>
+          <label className="label">Empresa <span style={{color:'#f56565'}}>*</span></label>
+          <select
+            value={companyId}
+            onChange={e => setCompanyId(e.target.value)}
+            style={{background:'var(--ink-raised)',border:'1px solid var(--ink-border)',borderRadius:9,padding:'10px 13px',color:'var(--mist)',fontSize:13.5,fontFamily:'inherit',outline:'none',width:'100%',cursor:'pointer'}}
+          >
+            <option value="">— Selecione a empresa —</option>
+            {companies.map(c => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
+          {companies.length === 0 && (
+            <div style={{fontSize:12,color:'var(--mist-muted)',marginTop:5}}>Nenhuma empresa cadastrada. Crie uma na barra superior.</div>
+          )}
+        </div>
+
+        {/* Captação */}
+        <div>
+          <div className="section-title">Captação de Leads</div>
+          <div className="form-grid form-grid-3">
+            <FormField label="Leads captados (total) *" value={m.leadsTotal}       onChange={e=>set('leadsTotal',e.target.value)}/>
+            <FormField label="Leads qualificados"        value={m.leadsQualificados} onChange={e=>set('leadsQualificados',e.target.value)}/>
+            <FormField label="Investimento em mídia (R$)" value={m.investimentoMidia} onChange={e=>set('investimentoMidia',e.target.value)} placeholder="0,00"/>
+          </div>
+        </div>
+
+        {/* Conversão */}
+        <div>
+          <div className="section-title">Conversão</div>
+          <div className="form-grid form-grid-2">
+            <FormField label="Vendas (novos clientes)"      value={m.vendas}     onChange={e=>set('vendas',e.target.value)}/>
+            <FormField label="Valor total das vendas (R$)"  value={m.valorVenda} onChange={e=>set('valorVenda',e.target.value)} placeholder="0,00"/>
+          </div>
+        </div>
+
+        {/* Observações + screenshot */}
+        <div>
+          <div className="section-title">Observações</div>
+          <div>
+            <label className="label">Observações da semana (opcional)</label>
+            <textarea value={m.observations} onChange={e=>set('observations',e.target.value)} placeholder="Pontos de destaque, dificuldades, oportunidades..."/>
+          </div>
+          <div style={{marginTop:14}}>
+            <label className="label">Anexar print da planilha (opcional · máx 4MB)</label>
+            <input type="file" accept="image/*" ref={fileRef} onChange={handleFile} style={{display:'none'}}/>
+            {screenshot ? (
+              <div style={{position:'relative',borderRadius:10,overflow:'hidden',border:'1px solid var(--ink-border)',marginTop:4}}>
+                <img src={screenshot} alt="Print da planilha" style={{width:'100%',display:'block',maxHeight:280,objectFit:'contain',background:'var(--ink-deep)'}}/>
+                <div style={{position:'absolute',top:8,right:8,display:'flex',gap:4}}>
+                  <button onClick={()=>fileRef.current?.click()} className="btn" style={{padding:'5px 9px',fontSize:11}}><Edit3 size={11}/> Trocar</button>
+                  <button onClick={()=>{setScreenshot(null);setScreenshotB64(null);}} className="btn" style={{padding:'5px 9px'}}><Trash2 size={11}/></button>
+                </div>
+              </div>
+            ) : (
+              <button className="btn" onClick={()=>fileRef.current?.click()} style={{marginTop:4,width:'100%',justifyContent:'center',padding:'11px'}}>
+                <Upload size={14}/> Anexar print
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="no-print" style={{display:'flex',gap:10,justifyContent:'flex-end',paddingTop:6,borderTop:'1px solid var(--ink-border-soft)'}}>
+          {onCancel && <button className="btn" onClick={onCancel}>Cancelar</button>}
+          <button className="btn btn-primary" onClick={handleSubmit} disabled={saving}>
+            <Save size={14}/> {saving ? 'Salvando…' : 'Salvar análise'}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  /* ============================================================
+     WEEK ANALYSIS VIEW
+  ============================================================ */
+  function WeekAnalysisView({ entry, analysis, screenshotSrc, companies, onEdit, onDelete, showToast }) {
+    const a = analysis;
+    const company = companies?.find(c => c.id === entry.companyId);
+    const companyColor = company ? COMPANY_COLORS[company.colorIdx % COMPANY_COLORS.length] : null;
+    const funnelSteps = [
+      {label:'Leads captados',    value: num(entry.metrics.leadsTotal)},
+      {label:'Leads qualificados',value: num(entry.metrics.leadsQualificados)},
+      {label:'Vendas',            value: num(entry.metrics.vendas || entry.metrics.fechamentos)},
+    ].filter(s => s.value > 0 || s.label === 'Leads captados');
+
+    function handlePrint() { window.print(); }
+
+    return (
+      <div id="print-report">
+        {/* Print header — shows only on print */}
+        <div className="print-only" style={{marginBottom:24,paddingBottom:16,borderBottom:'2px solid #0166fc'}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
+            <div>
+              <BBothLogo size={22}/>
+              <div style={{fontSize:20,fontWeight:700,marginTop:8}}>Análise Semanal de Leads</div>
+              <div style={{fontSize:13,color:'#4a5568',marginTop:2}}>{entry.weekLabel}{company ? ` · ${company.name}` : ''}</div>
+            </div>
+            <div style={{textAlign:'right',fontSize:11,color:'#8896a8'}}>
+              <div>Gerado em {new Date().toLocaleDateString('pt-BR', {day:'2-digit',month:'long',year:'numeric'})}</div>
+              <div style={{marginTop:4,fontWeight:600,color:a.badgeColor,fontSize:13}}>Performance: {a.badge}</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Action bar */}
+        <div className="no-print" style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20,flexWrap:'wrap',gap:10}}>
+          <div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
+            {company && (
+              <div style={{
+                display:'flex',alignItems:'center',gap:6,
+                padding:'4px 12px',borderRadius:999,fontSize:12,fontWeight:600,
+                background:`${companyColor}18`,color:companyColor,
+                border:`1px solid ${companyColor}40`,
+              }}>
+                <span style={{width:7,height:7,borderRadius:'50%',background:companyColor}}/>
+                {company.name}
+              </div>
+            )}
+            <div style={{
+              padding:'5px 14px',borderRadius:999,fontWeight:700,fontSize:12.5,
+              background:a.badgeBg,color:a.badgeColor,border:`1px solid ${a.badgeColor}40`,
+            }}>
+              {a.badge} · {a.score}/100
+            </div>
+            <span style={{fontSize:13,color:'var(--mist-dim)'}}>{entry.weekLabel}</span>
+          </div>
+          <div style={{display:'flex',gap:8}}>
+            <button className="btn" onClick={onEdit}><Edit3 size={13}/> Editar</button>
+            <button className="btn" onClick={handlePrint}><Printer size={13}/> Gerar PDF</button>
+            <button className="btn" style={{color:'var(--mist-muted)'}} onClick={onDelete}><Trash2 size={13}/></button>
+          </div>
+        </div>
+
+        {/* KPI Cards */}
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(150px,1fr))',gap:12,marginBottom:24}} className="print-section">
+          <KpiCard label="Leads Captados"     value={num(entry.metrics.leadsTotal)}    icon={Users}         delta={a.leadsDelta}/>
+          <KpiCard label="Vendas"             value={num(entry.metrics.vendas || entry.metrics.fechamentos)} icon={Target} delta={a.vendasDelta}/>
+          <KpiCard label="Taxa de Conversão"  value={`${a.convRate.toFixed(1)}%`}      icon={TrendingUp}    sub="leads → vendas"/>
+          {num(entry.metrics.valorVenda) > 0 && <KpiCard label="Valor das Vendas" value={fmtBRL(entry.metrics.valorVenda)} icon={DollarSign} sub="receita gerada"/>}
+          {a.cpl !== null && <KpiCard label="CPL"  value={fmtBRL(a.cpl)}              icon={Activity}      sub="custo por lead"/>}
+          {num(entry.metrics.leadsQualificados) > 0 &&
+            <KpiCard label="Qualificação"     value={`${a.qualRate.toFixed(1)}%`}      icon={UserCheck}     sub="leads qualificados"/>
+          }
+        </div>
+
+        {/* Análise textual */}
+        <div style={{display:'grid',gridTemplateColumns:'1fr',gap:14,marginBottom:24}}>
+          {a.paragraphs.map((p, i) => (
+            <div key={i} className="card print-section" style={{padding:'16px 20px'}}>
+              <div style={{fontSize:11,fontWeight:700,color:'var(--mist-muted)',textTransform:'uppercase',letterSpacing:'.06em',marginBottom:8}}>{p.title}</div>
+              <div style={{fontSize:13.5,color:'var(--mist-dim)',lineHeight:1.65}}>{p.text}</div>
+            </div>
+          ))}
+          {entry.metrics.observations && (
+            <div className="card print-section" style={{padding:'16px 20px',borderLeft:`3px solid var(--brand-blue)`}}>
+              <div style={{fontSize:11,fontWeight:700,color:'var(--mist-muted)',textTransform:'uppercase',letterSpacing:'.06em',marginBottom:8}}>Observações da Equipe</div>
+              <div style={{fontSize:13.5,color:'var(--mist-dim)',lineHeight:1.65,whiteSpace:'pre-wrap'}}>{entry.metrics.observations}</div>
+            </div>
+          )}
+        </div>
+
+        {/* Funil */}
+        {funnelSteps.some(s=>s.value>0) && (
+          <div style={{marginBottom:24}} className="print-section">
+            <div className="card" style={{padding:'18px 20px'}}>
+              <div className="section-title">Funil da Semana</div>
+              <FunnelViz steps={funnelSteps}/>
+            </div>
+          </div>
+        )}
+
+        {/* Screenshot */}
+        {screenshotSrc && (
+          <div className="card print-section" style={{padding:'18px 20px',marginBottom:24}}>
+            <div className="section-title">Print da Planilha</div>
+            <img src={screenshotSrc} alt="Print da planilha" style={{width:'100%',borderRadius:8,display:'block',maxHeight:420,objectFit:'contain'}}/>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  /* ============================================================
+     ABA 1 — ANÁLISE SEMANAL
+  ============================================================ */
+  function AnaliseSemanaiTab({ entries, companies, selectedCompanyId, onSaveEntry, onDeleteEntry, showToast }) {
+    const [weekInfo, setWeekInfo] = useState(() => getCurrentWeekInfo());
+    const [editing, setEditing] = useState(false);
+    const [imgCache, setImgCache] = useState({});
+    const weekPickerRef = useRef(null);
+
+    function openWeekPicker() {
+      const el = weekPickerRef.current;
+      if (!el) return;
+      try { el.showPicker(); } catch (e) { el.click(); }
+    }
+
+    // Filter entries by company
+    const companyEntries = useMemo(() =>
+      selectedCompanyId === 'all' ? entries : entries.filter(e => e.companyId === selectedCompanyId),
+    [entries, selectedCompanyId]);
+
+    const entry = useMemo(() => companyEntries.find(e => e.weekKey === weekInfo.key), [companyEntries, weekInfo.key]);
+    const prevEntry = useMemo(() => {
+      const prev = navigateWeek(weekInfo, -1);
+      return companyEntries.find(e => e.weekKey === prev.key);
+    }, [companyEntries, weekInfo]);
+
+    // Reset editing when week or company changes
+    useEffect(() => { setEditing(false); }, [weekInfo.key, selectedCompanyId]);
+
+    // Load screenshot
+    useEffect(() => {
+      if (entry?.screenshotKey && !imgCache[entry.screenshotKey]) {
+        storage.get(K.screenshot(entry.screenshotKey)).then(v => {
+          if (v) setImgCache(c => ({...c, [entry.screenshotKey]: v}));
+        });
+      }
+    }, [entry]);
+
+    const analysis = useMemo(() => {
+      if (!entry) return null;
+      return generateAnalysis(entry.metrics, prevEntry?.metrics);
+    }, [entry, prevEntry]);
+
+    async function handleSave(metrics, screenshotB64, companyId) {
+      let screenshotKey = entry?.screenshotKey || null;
+      if (screenshotB64) {
+        screenshotKey = screenshotKey || uid();
+        await storage.set(K.screenshot(screenshotKey), screenshotB64);
+        setImgCache(c => ({...c, [screenshotKey]: screenshotB64}));
+      }
+      const e = {
+        id: entry?.id || uid(),
+        weekKey: weekInfo.key,
+        year: weekInfo.year,
+        week: weekInfo.week,
+        weekLabel: weekInfo.label,
+        companyId: companyId || null,
+        metrics,
+        screenshotKey,
+        updatedAt: Date.now(),
+        createdAt: entry?.createdAt || Date.now(),
+      };
+      await onSaveEntry(e);
+      setEditing(false);
+      showToast('success', 'Análise salva!');
+    }
+
+    async function handleDelete() {
+      if (!entry) return;
+      if (entry.screenshotKey) await storage.delete(K.screenshot(entry.screenshotKey));
+      await onDeleteEntry(entry.id);
+      showToast('success', 'Entrada removida');
+    }
+
+    const selectedCompany = companies.find(c => c.id === selectedCompanyId);
+
+    return (
+      <div style={{maxWidth:900,margin:'0 auto',padding:'28px 20px'}}>
+        {/* Hidden week input — positioned off-screen, triggered by button below */}
+        <input
+          ref={weekPickerRef}
+          type="week"
+          value={weekInfo.key}
+          onChange={e => {
+            if (!e.target.value) return;
+            const [yearStr, weekStr] = e.target.value.split('-W');
+            const { start } = getWeekDates(parseInt(yearStr), parseInt(weekStr));
+            setWeekInfo(weekInfoFromDate(start));
+          }}
+          style={{position:'fixed',top:'-300px',left:0,opacity:0,pointerEvents:'none',width:1,height:1}}
+          tabIndex={-1}
+        />
+
+        {/* Week navigator */}
+        <div className="no-print" style={{textAlign:'center',marginBottom:28}}>
+          {/* Arrows + picker in a compact inline row — arrows are siblings at same level, nothing can cover them */}
+          <div style={{display:'inline-flex',alignItems:'center',gap:6}}>
+            <button className="btn-icon" onClick={()=>setWeekInfo(navigateWeek(weekInfo,-1))} title="Semana anterior">
+              <ChevronLeft size={16}/>
+            </button>
+
+            <button
+              onClick={openWeekPicker}
+              title="Clique para escolher a semana"
+              style={{
+                background:'none',border:'none',cursor:'pointer',
+                padding:'6px 12px',borderRadius:8,fontFamily:'inherit',
+                textAlign:'center',lineHeight:1.3,
+              }}
+            >
+              <div style={{fontSize:15,fontWeight:600,color:'var(--mist)',whiteSpace:'nowrap'}}>{weekInfo.label}</div>
+              <div style={{fontSize:10,color:'var(--mist-muted)',marginTop:3}}>▼ clique para escolher</div>
+            </button>
+
+            <button className="btn-icon" onClick={()=>setWeekInfo(navigateWeek(weekInfo,+1))} title="Próxima semana">
+              <ChevronRight size={16}/>
+            </button>
+          </div>
+
+          {/* Metadata below the nav row */}
+          <div style={{marginTop:6,display:'flex',flexDirection:'column',alignItems:'center',gap:2}}>
+            {selectedCompany && (
+              <div style={{fontSize:12,color:COMPANY_COLORS[selectedCompany.colorIdx%COMPANY_COLORS.length],fontWeight:500}}>
+                {selectedCompany.name}
+              </div>
+            )}
+            {!selectedCompany && selectedCompanyId === 'all' && (
+              <div style={{fontSize:11.5,color:'var(--mist-muted)'}}>Todas as empresas</div>
+            )}
+            {entry && <div style={{fontSize:11,color:'var(--brand-cyan)'}}>✓ Dados registrados</div>}
+            <button className="btn" style={{marginTop:6,padding:'5px 14px',fontSize:12}} onClick={()=>setWeekInfo(getCurrentWeekInfo())}>
+              Semana atual
+            </button>
+          </div>
+        </div>
+
+        {/* Show form or analysis */}
+        {(!entry || editing) ? (
+          <div className="card" style={{padding:'24px 28px'}}>
+            <div style={{fontSize:16,fontWeight:600,marginBottom:20,color:'var(--mist)'}}>
+              {entry ? 'Editar análise' : 'Registrar semana'} — <span style={{fontWeight:400,color:'var(--mist-dim)'}}>{weekInfo.label}</span>
+            </div>
+            <WeekForm
+              weekInfo={weekInfo}
+              initial={entry?.metrics}
+              initialCompanyId={entry?.companyId || (selectedCompanyId !== 'all' ? selectedCompanyId : '')}
+              companies={companies}
+              onSave={handleSave}
+              onCancel={entry ? ()=>setEditing(false) : null}
+              showToast={showToast}
+            />
+          </div>
+        ) : (
+          <WeekAnalysisView
+            entry={entry}
+            analysis={analysis}
+            screenshotSrc={entry.screenshotKey ? imgCache[entry.screenshotKey] : null}
+            companies={companies}
+            onEdit={()=>setEditing(true)}
+            onDelete={handleDelete}
+            showToast={showToast}
+          />
+        )}
+      </div>
+    );
+  }
+
+  /* ============================================================
+     ABA 2 — RELATÓRIO MENSAL
+  ============================================================ */
+  function RelatorioMensalTab({ entries, companies, selectedCompanyId, showToast }) {
+    const now = new Date();
+    const [year, setYear] = useState(now.getUTCFullYear());
+    const filteredEntries = useMemo(() =>
+      selectedCompanyId === 'all' ? entries : entries.filter(e => e.companyId === selectedCompanyId),
+    [entries, selectedCompanyId]);
+    const selectedCompany = companies.find(c => c.id === selectedCompanyId);
+    const [month, setMonth] = useState(now.getUTCMonth());
+
+    function navMonth(dir) {
+      let m = month + dir, y = year;
+      if (m > 11) { m = 0; y++; }
+      if (m < 0)  { m = 11; y--; }
+      setMonth(m); setYear(y);
+    }
+
+    const monthEntries = useMemo(() => {
+      return getMonthEntries(filteredEntries, year, month)
+        .sort((a,b) => a.week - b.week);
+    }, [filteredEntries, year, month]);
+
+    const totals = useMemo(() => {
+      const t = { leadsTotal:0, leadsQualificados:0, vendas:0, valorVenda:0, investimentoMidia:0 };
+      for (const e of monthEntries) {
+        t.leadsTotal      += num(e.metrics.leadsTotal);
+        t.leadsQualificados += num(e.metrics.leadsQualificados);
+        t.vendas          += num(e.metrics.vendas || e.metrics.fechamentos); // compat
+        t.valorVenda      += num(e.metrics.valorVenda);
+        t.investimentoMidia += num(e.metrics.investimentoMidia);
+      }
+      return t;
+    }, [monthEntries]);
+
+    const convRateMed = totals.leadsTotal > 0 ? (totals.vendas/totals.leadsTotal*100) : 0;
+    const cplMed = (totals.leadsTotal > 0 && totals.investimentoMidia > 0) ? totals.investimentoMidia/totals.leadsTotal : null;
+
+    const barData = monthEntries.map(e => ({
+      label: `S${e.week}`,
+      value: num(e.metrics.leadsTotal),
+    }));
+    const lineData = monthEntries.filter(e=>num(e.metrics.leadsTotal)>0).map(e => ({
+      label: `S${e.week}`,
+      value: num(e.metrics.leadsTotal) > 0 ? (num(e.metrics.vendas||e.metrics.fechamentos)/num(e.metrics.leadsTotal)*100) : 0,
+    }));
+
+    return (
+      <div style={{maxWidth:960,margin:'0 auto',padding:'28px 20px'}}>
+        {/* Month nav */}
+        <div className="no-print" style={{display:'flex',alignItems:'center',gap:16,marginBottom:28,justifyContent:'center'}}>
+          <button className="btn-icon" onClick={()=>navMonth(-1)}><ChevronLeft size={16}/></button>
+          <div style={{textAlign:'center',minWidth:160}}>
+            <div style={{fontSize:16,fontWeight:600,color:'var(--mist)'}}>{MONTHS_FULL_PT[month]} {year}</div>
+            <div style={{fontSize:12,color:'var(--mist-muted)',marginTop:2}}>{monthEntries.length} semana{monthEntries.length!==1?'s':''} registrada{monthEntries.length!==1?'s':''}</div>
+          </div>
+          <button className="btn-icon" onClick={()=>navMonth(+1)}><ChevronRight size={16}/></button>
+          <button className="btn no-print" onClick={()=>window.print()}><Printer size={13}/> Gerar PDF</button>
+        </div>
+
+        {monthEntries.length === 0 ? (
+          <div style={{textAlign:'center',padding:'60px 20px',color:'var(--mist-muted)'}}>
+            <BarChart2 size={36} strokeWidth={1.2} style={{margin:'0 auto 12px'}}/>
+            <div style={{fontSize:14}}>Nenhuma semana registrada em {MONTHS_FULL_PT[month]} {year}</div>
+            <div style={{fontSize:12,marginTop:4}}>Acesse "Análise Semanal" para adicionar dados.</div>
+          </div>
+        ) : (<>
+          {/* Print header */}
+          <div className="print-only" style={{marginBottom:24,paddingBottom:16,borderBottom:'2px solid #0166fc'}}>
+            <BBothLogo size={20}/>
+            <div style={{fontSize:20,fontWeight:700,marginTop:8}}>Relatório Mensal de Leads</div>
+            <div style={{fontSize:13,color:'#4a5568',marginTop:2}}>{MONTHS_FULL_PT[month]} {year}{selectedCompany ? ` · ${selectedCompany.name}` : ''}</div>
+          </div>
+
+          {/* Summary KPIs */}
+          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(140px,1fr))',gap:12,marginBottom:24}} className="print-section">
+            <KpiCard label="Leads Captados"    value={totals.leadsTotal}             icon={Users}/>
+            <KpiCard label="Vendas"            value={totals.vendas}                 icon={Target}/>
+            <KpiCard label="Conv. Média"       value={`${convRateMed.toFixed(1)}%`}  icon={TrendingUp}/>
+            {totals.valorVenda > 0 && <KpiCard label="Receita Total" value={fmtBRL(totals.valorVenda)} icon={DollarSign}/>}
+            {cplMed !== null && <KpiCard label="CPL Médio"  value={fmtBRL(cplMed)} icon={Activity}/>}
+            <KpiCard label="Investimento"      value={fmtBRL(totals.investimentoMidia)} icon={BarChart2}/>
+          </div>
+
+          {/* Weekly table */}
+          <div className="card print-section" style={{marginBottom:24,overflowX:'auto'}}>
+            <table className="data-table">
+              <thead>
+                <tr style={{borderBottom:'1px solid var(--ink-border)'}}>
+                  {['Sem.','Período','Leads','Qualif.','Vendas','Receita','Invest.','Conv.%'].map(h=>(
+                    <th key={h}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {monthEntries.map((e,i)=>{
+                  const v = num(e.metrics.vendas || e.metrics.fechamentos);
+                  const cv = num(e.metrics.leadsTotal)>0 ? (v/num(e.metrics.leadsTotal)*100).toFixed(1) : '—';
+                  return (
+                    <tr key={e.id} style={{borderBottom:'1px solid var(--ink-border-soft)',background:i%2===0?'transparent':'var(--ink-raised)'}}>
+                      <td style={{fontWeight:600,color:'var(--brand-blue)',fontFamily:'var(--mono)'}}>S{e.week}</td>
+                      <td style={{color:'var(--mist-dim)',whiteSpace:'nowrap'}}>{e.weekLabel.split('·')[1]?.trim()||''}</td>
+                      <td style={{fontWeight:600}}>{num(e.metrics.leadsTotal)||'—'}</td>
+                      <td>{num(e.metrics.leadsQualificados)||'—'}</td>
+                      <td style={{fontWeight:600,color:'var(--brand-cyan)'}}>{v||'—'}</td>
+                      <td style={{fontFamily:'var(--mono)'}}>{num(e.metrics.valorVenda)>0?fmtBRL(e.metrics.valorVenda):'—'}</td>
+                      <td style={{fontFamily:'var(--mono)'}}>{num(e.metrics.investimentoMidia)>0?fmtBRL(e.metrics.investimentoMidia):'—'}</td>
+                      <td style={{fontWeight:600}}>{cv}{cv!=='—'?'%':''}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+              <tfoot>
+                <tr style={{borderTop:'2px solid var(--ink-border)',background:'var(--ink-soft)'}}>
+                  <td colSpan={2} style={{fontWeight:700,color:'var(--mist-dim)',textTransform:'uppercase',letterSpacing:'.04em',fontSize:10}}>Total</td>
+                  <td style={{fontWeight:700}}>{totals.leadsTotal}</td>
+                  <td style={{fontWeight:700}}>{totals.leadsQualificados||'—'}</td>
+                  <td style={{fontWeight:700,color:'var(--brand-cyan)'}}>{totals.vendas}</td>
+                  <td style={{fontWeight:700,fontFamily:'var(--mono)'}}>{totals.valorVenda>0?fmtBRL(totals.valorVenda):'—'}</td>
+                  <td style={{fontWeight:700,fontFamily:'var(--mono)'}}>{fmtBRL(totals.investimentoMidia)}</td>
+                  <td style={{fontWeight:700}}>{convRateMed.toFixed(1)}%</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+
+          {/* Charts */}
+          <div className="grid-2 print-section">
+            <div className="card" style={{padding:'16px 18px'}}>
+              <div className="section-title">Leads por Semana</div>
+              <BarChart data={barData} color="#0166fc" height={480}/>
+            </div>
+            {lineData.length >= 2 && (
+              <div className="card" style={{padding:'16px 18px'}}>
+                <div className="section-title">Taxa de Conversão (%)</div>
+                <LineChart data={lineData} color="#1de4f0" height={480}/>
+              </div>
+            )}
+          </div>
+        </>)}
+      </div>
+    );
+  }
+
+  /* ============================================================
+     ABA 3 — ANÁLISE DE PERFORMANCE
+  ============================================================ */
+  function AnalisePerformanceTab({ entries, companies, selectedCompanyId, showToast }) {
+    const [range, setRange] = useState(8); // last N weeks
+    const filteredEntries = useMemo(() =>
+      selectedCompanyId === 'all' ? entries : entries.filter(e => e.companyId === selectedCompanyId),
+    [entries, selectedCompanyId]);
+    const selectedCompany = companies.find(c => c.id === selectedCompanyId);
+
+    const recent = useMemo(() => {
+      const sorted = [...filteredEntries].sort((a,b) => {
+        if (a.year !== b.year) return a.year - b.year;
+        return a.week - b.week;
+      });
+      return sorted.slice(-range);
+    }, [filteredEntries, range]);
+
+    const totals = useMemo(() => {
+      const t = { leadsTotal:0, leadsQualificados:0, vendas:0, valorVenda:0, investimentoMidia:0 };
+      for (const e of recent) {
+        t.leadsTotal        += num(e.metrics.leadsTotal);
+        t.leadsQualificados += num(e.metrics.leadsQualificados);
+        t.vendas            += num(e.metrics.vendas || e.metrics.fechamentos); // compat
+        t.valorVenda        += num(e.metrics.valorVenda);
+        t.investimentoMidia += num(e.metrics.investimentoMidia);
+      }
+      return t;
+    }, [recent]);
+
+    const avgConv = totals.leadsTotal > 0 ? (totals.vendas/totals.leadsTotal*100) : 0;
+    const avgCpl  = (totals.leadsTotal > 0 && totals.investimentoMidia > 0) ? totals.investimentoMidia/totals.leadsTotal : null;
+    const avgLeadsPerWeek = recent.length > 0 ? (totals.leadsTotal/recent.length) : 0;
+
+    const bestWeek = useMemo(() => recent.reduce((best, e) => {
+      const l = num(e.metrics.leadsTotal);
+      return l > (best ? num(best.metrics.leadsTotal) : -1) ? e : best;
+    }, null), [recent]);
+
+    const worstWeek = useMemo(() => recent.filter(e=>num(e.metrics.leadsTotal)>0).reduce((worst, e) => {
+      const l = num(e.metrics.leadsTotal);
+      return (!worst || l < num(worst.metrics.leadsTotal)) ? e : worst;
+    }, null), [recent]);
+
+    const funnelSteps = [
+      {label:'Leads captados',    value:totals.leadsTotal},
+      {label:'Leads qualificados',value:totals.leadsQualificados},
+      {label:'Vendas',            value:totals.vendas},
+    ].filter(s => s.value > 0);
+
+    const barData = recent.map(e => ({ label:`S${e.week}`, value:num(e.metrics.leadsTotal) }));
+    const lineData = recent.filter(e=>num(e.metrics.leadsTotal)>0).map(e => ({
+      label:`S${e.week}`,
+      value: num(e.metrics.leadsTotal) > 0 ? (num(e.metrics.vendas||e.metrics.fechamentos)/num(e.metrics.leadsTotal)*100) : 0,
+    }));
+
+    if (filteredEntries.length === 0) return (
+      <div style={{maxWidth:900,margin:'0 auto',padding:'60px 20px',textAlign:'center',color:'var(--mist-muted)'}}>
+        <Activity size={40} strokeWidth={1.2} style={{margin:'0 auto 12px'}}/>
+        <div style={{fontSize:14}}>{selectedCompany ? `Sem dados para ${selectedCompany.name} ainda.` : 'Sem dados de performance ainda.'}</div>
+        <div style={{fontSize:12,marginTop:4}}>Comece registrando semanas na aba "Análise Semanal".</div>
+      </div>
+    );
+
+    return (
+      <div style={{maxWidth:1000,margin:'0 auto',padding:'28px 20px'}}>
+        {/* Controls */}
+        <div className="no-print" style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:24,flexWrap:'wrap',gap:10}}>
+          <div style={{fontSize:15,fontWeight:600,color:'var(--mist)'}}>Performance — últimas {range} semanas</div>
+          <div style={{display:'flex',gap:8,alignItems:'center'}}>
+            <span style={{fontSize:12,color:'var(--mist-muted)'}}>Período:</span>
+            {[4,8,12,26].map(n=>(
+              <button key={n} className="btn" style={{padding:'5px 12px',fontSize:12,background:range===n?'var(--brand-soft)':'transparent',color:range===n?'var(--brand-blue)':'var(--mist-dim)',borderColor:range===n?'rgba(1,102,252,0.3)':'var(--ink-border)'}} onClick={()=>setRange(n)}>{n}sem</button>
+            ))}
+            <button className="btn no-print" onClick={()=>window.print()}><Printer size={13}/> PDF</button>
+          </div>
+        </div>
+
+        {/* Print header */}
+        <div className="print-only" style={{marginBottom:24,paddingBottom:16,borderBottom:'2px solid #0166fc'}}>
+          <BBothLogo size={20}/>
+          <div style={{fontSize:20,fontWeight:700,marginTop:8}}>Análise de Performance — Leads</div>
+          <div style={{fontSize:13,color:'#4a5568',marginTop:2}}>Últimas {range} semanas{selectedCompany ? ` · ${selectedCompany.name}` : ''} · Gerado em {new Date().toLocaleDateString('pt-BR')}</div>
+        </div>
+
+        {/* Avg KPIs */}
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(150px,1fr))',gap:12,marginBottom:24}} className="print-section">
+          <KpiCard label="Leads / semana"    value={avgLeadsPerWeek.toFixed(1)}  icon={Users}     sub="média"/>
+          <KpiCard label="Vendas total"      value={totals.vendas}               icon={Target}/>
+          <KpiCard label="Conv. média"       value={`${avgConv.toFixed(1)}%`}   icon={TrendingUp} sub={`${recent.length} semanas`}/>
+          {totals.valorVenda > 0 && <KpiCard label="Receita total" value={fmtBRL(totals.valorVenda)} icon={DollarSign}/>}
+          {avgCpl !== null && <KpiCard label="CPL médio"    value={fmtBRL(avgCpl)}           icon={Activity}/>}
+          <KpiCard label="Invest. total"     value={fmtBRL(totals.investimentoMidia)} icon={BarChart2}/>
+        </div>
+
+        {/* Best / Worst */}
+        {(bestWeek || worstWeek) && (
+          <div className="grid-2 print-section">
+            {bestWeek && (
+              <div className="card" style={{padding:'16px 20px',borderLeft:'3px solid #1de4f0'}}>
+                <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10}}>
+                  <Award size={16} color="#1de4f0"/><span style={{fontSize:11,fontWeight:700,color:'#1de4f0',textTransform:'uppercase',letterSpacing:'.05em'}}>Melhor Semana</span>
+                </div>
+                <div style={{fontSize:15,fontWeight:600,color:'var(--mist)'}}>{bestWeek.weekLabel}</div>
+                <div style={{fontSize:13,color:'var(--mist-dim)',marginTop:4}}>
+                  {num(bestWeek.metrics.leadsTotal)} leads · {num(bestWeek.metrics.vendas||bestWeek.metrics.fechamentos)} vendas
+                </div>
+              </div>
+            )}
+            {worstWeek && worstWeek.id !== bestWeek?.id && (
+              <div className="card" style={{padding:'16px 20px',borderLeft:'3px solid #f5b342'}}>
+                <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10}}>
+                  <AlertCircle size={16} color="#f5b342"/><span style={{fontSize:11,fontWeight:700,color:'#f5b342',textTransform:'uppercase',letterSpacing:'.05em'}}>Semana p/ Atenção</span>
+                </div>
+                <div style={{fontSize:15,fontWeight:600,color:'var(--mist)'}}>{worstWeek.weekLabel}</div>
+                <div style={{fontSize:13,color:'var(--mist-dim)',marginTop:4}}>
+                  {num(worstWeek.metrics.leadsTotal)} leads · {num(worstWeek.metrics.vendas||worstWeek.metrics.fechamentos)} vendas
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Funil consolidado */}
+        {funnelSteps.length > 0 && (
+          <div style={{marginBottom:24}} className="print-section">
+            <div className="card" style={{padding:'18px 20px'}}>
+              <div className="section-title">Funil Consolidado</div>
+              <FunnelViz steps={funnelSteps}/>
+            </div>
+          </div>
+        )}
+
+        {/* Trend charts */}
+        <div className="grid-2 print-section">
+          {barData.length > 0 && (
+            <div className="card" style={{padding:'16px 18px'}}>
+              <div className="section-title">Volume de Leads</div>
+              <BarChart data={barData} color="#0166fc" height={480}/>
+            </div>
+          )}
+          {lineData.length >= 2 && (
+            <div className="card" style={{padding:'16px 18px'}}>
+              <div className="section-title">Tendência de Conversão</div>
+              <LineChart data={lineData} color="#1de4f0" height={480}/>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  /* ============================================================
+     APP ROOT
+  ============================================================ */
+  function LeadsApp() {
+    useFontInjection();
+    const [theme, setTheme] = useState(() => localStorage.getItem(K.theme) || 'dark');
+    const [tab, setTab] = useState('semanal');
+    const [entries, setEntries] = useState([]);
+    const [companies, setCompanies] = useState([]);
+    const [selectedCompanyId, setSelectedCompanyId] = useState('all');
+    const [companyModal, setCompanyModal] = useState(null); // null | 'add' | company object
+    const { toasts, showToast } = useToast();
+
+    useEffect(() => {
+      Promise.all([
+        storage.getJSON(K.entries, []),
+        storage.getJSON(K.companies, []),
+      ]).then(([e, c]) => { setEntries(e); setCompanies(c); });
+    }, []);
+
+    function toggleTheme() {
+      const next = theme === 'dark' ? 'light' : 'dark';
+      setTheme(next); localStorage.setItem(K.theme, next);
+    }
+
+    async function saveEntry(entry) {
+      const next = entries.find(e => e.id === entry.id)
+        ? entries.map(e => e.id === entry.id ? entry : e)
+        : [entry, ...entries];
+      setEntries(next);
+      await storage.set(K.entries, next);
+    }
+
+    async function deleteEntry(id) {
+      const next = entries.filter(e => e.id !== id);
+      setEntries(next);
+      await storage.set(K.entries, next);
+    }
+
+    async function saveCompany(company) {
+      const isEdit = companies.some(c => c.id === company.id);
+      const next = isEdit
+        ? companies.map(c => c.id === company.id ? company : c)
+        : [...companies, company];
+      setCompanies(next);
+      await storage.set(K.companies, next);
+      if (!isEdit) setSelectedCompanyId(company.id);
+      setCompanyModal(null);
+      showToast('success', isEdit ? 'Empresa atualizada' : 'Empresa criada');
+    }
+
+    async function deleteCompany(id) {
+      const next = companies.filter(c => c.id !== id);
+      setCompanies(next);
+      await storage.set(K.companies, next);
+      if (selectedCompanyId === id) setSelectedCompanyId('all');
+    }
+
+    const sharedProps = { entries, companies, selectedCompanyId, showToast };
+
+    return (
+      <>
+        <GlobalStyles theme={theme}/>
+        <LeadsHeader tab={tab} setTab={setTab} theme={theme} onToggleTheme={toggleTheme}/>
+        <CompanyBar
+          companies={companies}
+          selected={selectedCompanyId}
+          onSelect={setSelectedCompanyId}
+          onAdd={() => setCompanyModal('add')}
+          onEdit={c => setCompanyModal(c)}
+          onDelete={deleteCompany}
+        />
+        <main>
+          {tab === 'semanal' && <AnaliseSemanaiTab {...sharedProps} onSaveEntry={saveEntry} onDeleteEntry={deleteEntry}/>}
+          {tab === 'mensal'  && <RelatorioMensalTab {...sharedProps}/>}
+          {tab === 'perf'    && <AnalisePerformanceTab {...sharedProps}/>}
+        </main>
+        <Toast toasts={toasts}/>
+        {companyModal && (
+          <AddCompanyModal
+            companies={companies}
+            editCompany={companyModal === 'add' ? null : companyModal}
+            onClose={() => setCompanyModal(null)}
+            onSave={saveCompany}
+          />
+        )}
+      </>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<LeadsApp/>);
+  </script>
+</body>
+</html>
