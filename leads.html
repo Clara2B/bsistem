@@ -186,15 +186,46 @@
   }
 
   /* ============================================================
+     PLATFORMS
+  ============================================================ */
+  const PLATFORMS = [
+    { id:'Meta',   label:'Meta / WhatsApp', color:'#0166fc',
+      leadsKey:'leadsTotalMeta',   qualKey:'leadsQualificadosMeta',   investKey:'investimentoMeta'   },
+    { id:'Tiktok', label:'TikTok',          color:'#69C9D0',
+      leadsKey:'leadsTotalTiktok', qualKey:'leadsQualificadosTiktok', investKey:'investimentoTiktok' },
+    { id:'Google', label:'Google',          color:'#ea580c',
+      leadsKey:'leadsTotalGoogle', qualKey:'leadsQualificadosGoogle', investKey:'investimentoGoogle' },
+  ];
+
+  /* ============================================================
      METRICS SCHEMA
   ============================================================ */
   function emptyMetrics() {
     return {
-      leadsTotal:'', leadsQualificados:'',
+      // Per platform
+      leadsTotalMeta:'',   leadsQualificadosMeta:'',   investimentoMeta:'',
+      leadsTotalTiktok:'', leadsQualificadosTiktok:'', investimentoTiktok:'',
+      leadsTotalGoogle:'', leadsQualificadosGoogle:'', investimentoGoogle:'',
+      // Conversion
       vendas:'', valorVenda:'',
-      investimentoMidia:'',
+      // Total actual spend
+      valorGasto:'',
       observations:'',
     };
+  }
+
+  // Sum per-platform values; fall back to legacy single fields for old entries
+  function getInvestTotal(m) {
+    const plat = num(m.investimentoMeta) + num(m.investimentoTiktok) + num(m.investimentoGoogle);
+    return plat > 0 ? plat : num(m.investimentoMidia);
+  }
+  function getLeadsTotal(m) {
+    const plat = num(m.leadsTotalMeta) + num(m.leadsTotalTiktok) + num(m.leadsTotalGoogle);
+    return plat > 0 ? plat : num(m.leadsTotal);
+  }
+  function getLeadsQualTotal(m) {
+    const plat = num(m.leadsQualificadosMeta) + num(m.leadsQualificadosTiktok) + num(m.leadsQualificadosGoogle);
+    return plat > 0 ? plat : num(m.leadsQualificados);
   }
 
   /* ============================================================
@@ -202,15 +233,22 @@
   ============================================================ */
   function generateAnalysis(cur, prev) {
     const c = {
-      leadsTotal: num(cur.leadsTotal), leadsQualificados: num(cur.leadsQualificados),
+      leadsTotal: getLeadsTotal(cur), leadsQualificados: getLeadsQualTotal(cur),
       vendas: num(cur.vendas || cur.fechamentos), // backward compat
       valorVenda: num(cur.valorVenda),
-      investimentoMidia: num(cur.investimentoMidia),
+      investimentoMidia: getInvestTotal(cur),
+      investimentoMeta: num(cur.investimentoMeta),
+      investimentoTiktok: num(cur.investimentoTiktok),
+      investimentoGoogle: num(cur.investimentoGoogle),
+      valorGasto: num(cur.valorGasto),
     };
+    // Use valorGasto when available (actual spend), else fall back to investimentoMidia (budget)
+    const gastoEfetivo = c.valorGasto > 0 ? c.valorGasto : c.investimentoMidia;
+    const saldo = (c.investimentoMidia > 0 && c.valorGasto > 0) ? c.investimentoMidia - c.valorGasto : null;
     const convRate = c.leadsTotal > 0 ? (c.vendas/c.leadsTotal*100) : 0;
     const qualRate = c.leadsTotal > 0 ? (c.leadsQualificados/c.leadsTotal*100) : 0;
-    const cpl = (c.leadsTotal > 0 && c.investimentoMidia > 0) ? c.investimentoMidia/c.leadsTotal : null;
-    const roi = (c.investimentoMidia > 0 && c.valorVenda > 0) ? ((c.valorVenda - c.investimentoMidia)/c.investimentoMidia*100) : null;
+    const cpl = (c.leadsTotal > 0 && gastoEfetivo > 0) ? gastoEfetivo/c.leadsTotal : null;
+    const roi = (gastoEfetivo > 0 && c.valorVenda > 0) ? ((c.valorVenda - gastoEfetivo)/gastoEfetivo*100) : null;
     const p = prev ? {
       leadsTotal: num(prev.leadsTotal),
       vendas: num(prev.vendas || prev.fechamentos),
@@ -272,7 +310,19 @@
 
     // Investimento
     if (c.investimentoMidia > 0) {
-      let t = `O investimento em mídia desta semana foi de ${fmtBRL(c.investimentoMidia)}. `;
+      let t = `O investimento total em mídia desta semana foi de ${fmtBRL(c.investimentoMidia)}`;
+      const platParts = [];
+      if (c.investimentoMeta > 0)   platParts.push(`Meta/WhatsApp: ${fmtBRL(c.investimentoMeta)}`);
+      if (c.investimentoTiktok > 0) platParts.push(`TikTok: ${fmtBRL(c.investimentoTiktok)}`);
+      if (c.investimentoGoogle > 0) platParts.push(`Google: ${fmtBRL(c.investimentoGoogle)}`);
+      if (platParts.length > 1) t += ` (${platParts.join(' · ')})`;
+      if (c.valorGasto > 0) {
+        t += `, sendo ${fmtBRL(c.valorGasto)} efetivamente gastos na campanha`;
+        if (saldo !== null && saldo > 0) t += ` — saldo não utilizado de ${fmtBRL(saldo)}`;
+        t += '. ';
+      } else {
+        t += '. ';
+      }
       if (cpl !== null) {
         t += `O custo por lead (CPL) ficou em ${fmtBRL(cpl)}`;
         t += cpl<30?', um resultado excelente para a campanha.':cpl<60?', dentro de um patamar competitivo.':' — considere revisar a segmentação ou criativo das campanhas para otimização.';
@@ -286,11 +336,11 @@
 
     return {
       paragraphs, score, badge, badgeColor, badgeBg,
-      convRate, qualRate, cpl, roi, leadsDelta, vendasDelta,
+      convRate, qualRate, cpl, roi, leadsDelta, vendasDelta, saldo,
       kpis: {
         leadsTotal: c.leadsTotal, leadsQualificados: c.leadsQualificados,
         vendas: c.vendas, valorVenda: c.valorVenda,
-        investimentoMidia: c.investimentoMidia,
+        investimentoMidia: c.investimentoMidia, valorGasto: c.valorGasto,
         convRate, cpl,
       },
     };
@@ -888,6 +938,9 @@
     const fileRef = useRef(null);
 
     const set = (k, v) => setM(prev => ({ ...prev, [k]: v }));
+    const leadsTotal  = num(m.leadsTotalMeta)          + num(m.leadsTotalTiktok)          + num(m.leadsTotalGoogle);
+    const leadsQual   = num(m.leadsQualificadosMeta)   + num(m.leadsQualificadosTiktok)   + num(m.leadsQualificadosGoogle);
+    const investTotal = num(m.investimentoMeta)        + num(m.investimentoTiktok)        + num(m.investimentoGoogle);
 
     async function handleFile(e) {
       const f = e.target.files?.[0];
@@ -899,7 +952,7 @@
 
     async function handleSubmit() {
       if (!companyId) { showToast('error', 'Selecione uma empresa'); return; }
-      if (!m.leadsTotal) { showToast('error', 'Leads captados é obrigatório'); return; }
+      if (!leadsTotal) { showToast('error', 'Informe os leads captados por plataforma'); return; }
       setSaving(true);
       try { await onSave(m, screenshotB64, companyId || null); }
       finally { setSaving(false); }
@@ -925,13 +978,46 @@
           )}
         </div>
 
-        {/* Captação */}
+        {/* Captação & Investimento por plataforma — tabela unificada */}
         <div>
-          <div className="section-title">Captação de Leads</div>
-          <div className="form-grid form-grid-3">
-            <FormField label="Leads captados (total) *" value={m.leadsTotal}       onChange={e=>set('leadsTotal',e.target.value)}/>
-            <FormField label="Leads qualificados"        value={m.leadsQualificados} onChange={e=>set('leadsQualificados',e.target.value)}/>
-            <FormField label="Investimento em mídia (R$)" value={m.investimentoMidia} onChange={e=>set('investimentoMidia',e.target.value)} placeholder="0,00"/>
+          <div className="section-title">
+            Captação &amp; Investimento por Plataforma
+            <span style={{fontSize:10,color:'var(--danger)',fontWeight:700,marginLeft:6,textTransform:'none',letterSpacing:0}}>* leads obrigatório</span>
+          </div>
+          <div style={{overflowX:'auto',margin:'0 -2px'}}>
+            <div style={{display:'grid',gridTemplateColumns:'130px repeat(3,minmax(90px,1fr))',gap:8,minWidth:420,padding:'0 2px'}}>
+              {/* Column headers */}
+              <div/>
+              <label className="label" style={{margin:0,textAlign:'center'}}>Leads captados</label>
+              <label className="label" style={{margin:0,textAlign:'center'}}>Qualificados</label>
+              <label className="label" style={{margin:0,textAlign:'center'}}>Invest. (R$)</label>
+              {/* Platform rows */}
+              {PLATFORMS.map(p => (
+                <React.Fragment key={p.id}>
+                  <div style={{display:'flex',alignItems:'center',gap:7,alignSelf:'center'}}>
+                    <span style={{width:8,height:8,borderRadius:'50%',background:p.color,flexShrink:0}}/>
+                    <span style={{fontSize:12.5,color:'var(--mist-dim)',fontWeight:500,lineHeight:1.2}}>{p.label}</span>
+                  </div>
+                  <input type="number" value={m[p.leadsKey]}  placeholder="0"    onChange={e=>set(p.leadsKey, e.target.value)}  style={{textAlign:'center'}}/>
+                  <input type="number" value={m[p.qualKey]}   placeholder="0"    onChange={e=>set(p.qualKey,  e.target.value)}   style={{textAlign:'center'}}/>
+                  <input type="number" value={m[p.investKey]} placeholder="0,00" onChange={e=>set(p.investKey,e.target.value)}/>
+                </React.Fragment>
+              ))}
+              {/* Totals row */}
+              {(leadsTotal > 0 || investTotal > 0) && (
+                <React.Fragment>
+                  <div style={{display:'flex',alignItems:'center',paddingTop:6,borderTop:'1px solid var(--ink-border-soft)'}}>
+                    <span style={{fontSize:10.5,fontWeight:700,color:'var(--mist-muted)',textTransform:'uppercase',letterSpacing:'.05em'}}>Total</span>
+                  </div>
+                  <div style={{textAlign:'center',paddingTop:6,borderTop:'1px solid var(--ink-border-soft)',fontWeight:700,fontSize:15,color:'var(--mist)'}}>{leadsTotal||'—'}</div>
+                  <div style={{textAlign:'center',paddingTop:6,borderTop:'1px solid var(--ink-border-soft)',fontWeight:600,fontSize:13,color:'var(--mist)'}}>{leadsQual||'—'}</div>
+                  <div style={{paddingTop:6,borderTop:'1px solid var(--ink-border-soft)',fontWeight:700,fontSize:13,fontFamily:'var(--mono)',color:'var(--mist)'}}>{investTotal>0?fmtBRL(investTotal):'—'}</div>
+                </React.Fragment>
+              )}
+            </div>
+          </div>
+          <div style={{marginTop:14}}>
+            <FormField label="Valor efetivamente gasto (R$)" value={m.valorGasto} onChange={e=>set('valorGasto',e.target.value)} placeholder="0,00"/>
           </div>
         </div>
 
@@ -989,8 +1075,8 @@
     const company = companies?.find(c => c.id === entry.companyId);
     const companyColor = company ? COMPANY_COLORS[company.colorIdx % COMPANY_COLORS.length] : null;
     const funnelSteps = [
-      {label:'Leads captados',    value: num(entry.metrics.leadsTotal)},
-      {label:'Leads qualificados',value: num(entry.metrics.leadsQualificados)},
+      {label:'Leads captados',    value: getLeadsTotal(entry.metrics)},
+      {label:'Leads qualificados',value: getLeadsQualTotal(entry.metrics)},
       {label:'Vendas',            value: num(entry.metrics.vendas || entry.metrics.fechamentos)},
     ].filter(s => s.value > 0 || s.label === 'Leads captados');
 
@@ -1044,12 +1130,14 @@
 
         {/* KPI Cards */}
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(150px,1fr))',gap:12,marginBottom:24}} className="print-section">
-          <KpiCard label="Leads Captados"     value={num(entry.metrics.leadsTotal)}    icon={Users}         delta={a.leadsDelta}/>
+          <KpiCard label="Leads Captados"     value={getLeadsTotal(entry.metrics)}    icon={Users}         delta={a.leadsDelta}/>
           <KpiCard label="Vendas"             value={num(entry.metrics.vendas || entry.metrics.fechamentos)} icon={Target} delta={a.vendasDelta}/>
           <KpiCard label="Taxa de Conversão"  value={`${a.convRate.toFixed(1)}%`}      icon={TrendingUp}    sub="leads → vendas"/>
           {num(entry.metrics.valorVenda) > 0 && <KpiCard label="Valor das Vendas" value={fmtBRL(entry.metrics.valorVenda)} icon={DollarSign} sub="receita gerada"/>}
+          {num(entry.metrics.valorGasto) > 0 && <KpiCard label="Valor Gasto" value={fmtBRL(entry.metrics.valorGasto)} icon={Activity} sub="gasto efetivo"/>}
+          {a.saldo !== null && <KpiCard label="Saldo" value={fmtBRL(a.saldo)} icon={TrendingUp} sub="investido − gasto" color={a.saldo >= 0 ? 'var(--brand-cyan)' : 'var(--danger)'}/>}
           {a.cpl !== null && <KpiCard label="CPL"  value={fmtBRL(a.cpl)}              icon={Activity}      sub="custo por lead"/>}
-          {num(entry.metrics.leadsQualificados) > 0 &&
+          {getLeadsQualTotal(entry.metrics) > 0 &&
             <KpiCard label="Qualificação"     value={`${a.qualRate.toFixed(1)}%`}      icon={UserCheck}     sub="leads qualificados"/>
           }
         </div>
@@ -1069,6 +1157,66 @@
             </div>
           )}
         </div>
+
+        {/* Platform breakdown table */}
+        {(() => {
+          const rows = PLATFORMS.map(p => ({
+            ...p,
+            leads:  num(entry.metrics[p.leadsKey]),
+            qual:   num(entry.metrics[p.qualKey]),
+            invest: num(entry.metrics[p.investKey]),
+          })).filter(p => p.leads > 0 || p.invest > 0);
+          if (rows.length === 0) return null;
+          const totLeads  = rows.reduce((s,r)=>s+r.leads, 0);
+          const totQual   = rows.reduce((s,r)=>s+r.qual,  0);
+          const totInvest = getInvestTotal(entry.metrics);
+          return (
+            <div className="card print-section" style={{padding:'18px 20px',marginBottom:24}}>
+              <div className="section-title">Captação &amp; Investimento por Plataforma</div>
+              <div style={{overflowX:'auto'}}>
+                <table style={{width:'100%',borderCollapse:'collapse',fontSize:13}}>
+                  <thead>
+                    <tr>
+                      <th style={{textAlign:'left',padding:'0 12px 10px 0',fontSize:10.5,fontWeight:700,color:'var(--mist-muted)',textTransform:'uppercase',letterSpacing:'.05em',whiteSpace:'nowrap'}}>Plataforma</th>
+                      <th style={{textAlign:'right',padding:'0 12px 10px',fontSize:10.5,fontWeight:700,color:'var(--mist-muted)',textTransform:'uppercase',letterSpacing:'.05em'}}>Leads</th>
+                      <th style={{textAlign:'right',padding:'0 12px 10px',fontSize:10.5,fontWeight:700,color:'var(--mist-muted)',textTransform:'uppercase',letterSpacing:'.05em'}}>Qualif.</th>
+                      <th style={{textAlign:'right',padding:'0 0 10px',fontSize:10.5,fontWeight:700,color:'var(--mist-muted)',textTransform:'uppercase',letterSpacing:'.05em',whiteSpace:'nowrap'}}>Investimento</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.map(p => (
+                      <tr key={p.id} style={{borderTop:'1px solid var(--ink-border-soft)'}}>
+                        <td style={{padding:'9px 12px 9px 0'}}>
+                          <div style={{display:'flex',alignItems:'center',gap:7}}>
+                            <span style={{width:8,height:8,borderRadius:'50%',background:p.color,flexShrink:0}}/>
+                            <span style={{color:'var(--mist-dim)'}}>{p.label}</span>
+                          </div>
+                        </td>
+                        <td style={{textAlign:'right',padding:'9px 12px',fontWeight:600,color:'var(--mist)'}}>{p.leads||'—'}</td>
+                        <td style={{textAlign:'right',padding:'9px 12px',color:'var(--mist-dim)'}}>{p.qual||'—'}</td>
+                        <td style={{textAlign:'right',padding:'9px 0 9px 12px',fontFamily:'var(--mono)'}}>{p.invest>0?fmtBRL(p.invest):'—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr style={{borderTop:'2px solid var(--ink-border)'}}>
+                      <td style={{padding:'9px 12px 0 0',fontWeight:700,fontSize:10.5,color:'var(--mist-muted)',textTransform:'uppercase',letterSpacing:'.05em'}}>Total</td>
+                      <td style={{textAlign:'right',padding:'9px 12px 0',fontWeight:700,color:'var(--mist)'}}>{totLeads||'—'}</td>
+                      <td style={{textAlign:'right',padding:'9px 12px 0',fontWeight:700,color:'var(--mist)'}}>{totQual||'—'}</td>
+                      <td style={{textAlign:'right',padding:'9px 0 0 12px',fontWeight:700,fontFamily:'var(--mono)',color:'var(--mist)'}}>{totInvest>0?fmtBRL(totInvest):'—'}</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+              {num(entry.metrics.valorGasto) > 0 && (
+                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',paddingTop:10,marginTop:8,borderTop:'1px solid var(--ink-border-soft)'}}>
+                  <span style={{fontSize:12,color:'var(--mist-muted)'}}>Valor efetivamente gasto</span>
+                  <span style={{fontSize:13,fontWeight:600,fontFamily:'var(--mono)',color:'#f5b342'}}>{fmtBRL(entry.metrics.valorGasto)}</span>
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         {/* Funil */}
         {funnelSteps.some(s=>s.value>0) && (
@@ -1283,27 +1431,30 @@
     }, [filteredEntries, year, month]);
 
     const totals = useMemo(() => {
-      const t = { leadsTotal:0, leadsQualificados:0, vendas:0, valorVenda:0, investimentoMidia:0 };
+      const t = { leadsTotal:0, leadsQualificados:0, vendas:0, valorVenda:0, investimentoMidia:0, valorGasto:0 };
       for (const e of monthEntries) {
-        t.leadsTotal      += num(e.metrics.leadsTotal);
-        t.leadsQualificados += num(e.metrics.leadsQualificados);
-        t.vendas          += num(e.metrics.vendas || e.metrics.fechamentos); // compat
-        t.valorVenda      += num(e.metrics.valorVenda);
-        t.investimentoMidia += num(e.metrics.investimentoMidia);
+        t.leadsTotal        += getLeadsTotal(e.metrics);
+        t.leadsQualificados += getLeadsQualTotal(e.metrics);
+        t.vendas            += num(e.metrics.vendas || e.metrics.fechamentos); // compat
+        t.valorVenda        += num(e.metrics.valorVenda);
+        t.investimentoMidia += getInvestTotal(e.metrics);
+        t.valorGasto        += num(e.metrics.valorGasto);
       }
       return t;
     }, [monthEntries]);
+    const saldoMensal = totals.investimentoMidia > 0 && totals.valorGasto > 0
+      ? totals.investimentoMidia - totals.valorGasto : null;
 
     const convRateMed = totals.leadsTotal > 0 ? (totals.vendas/totals.leadsTotal*100) : 0;
     const cplMed = (totals.leadsTotal > 0 && totals.investimentoMidia > 0) ? totals.investimentoMidia/totals.leadsTotal : null;
 
     const barData = monthEntries.map(e => ({
       label: `S${e.week}`,
-      value: num(e.metrics.leadsTotal),
+      value: getLeadsTotal(e.metrics),
     }));
-    const lineData = monthEntries.filter(e=>num(e.metrics.leadsTotal)>0).map(e => ({
+    const lineData = monthEntries.filter(e=>getLeadsTotal(e.metrics)>0).map(e => ({
       label: `S${e.week}`,
-      value: num(e.metrics.leadsTotal) > 0 ? (num(e.metrics.vendas||e.metrics.fechamentos)/num(e.metrics.leadsTotal)*100) : 0,
+      value: (num(e.metrics.vendas||e.metrics.fechamentos)/getLeadsTotal(e.metrics)*100),
     }));
 
     return (
@@ -1335,12 +1486,14 @@
 
           {/* Summary KPIs */}
           <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(140px,1fr))',gap:12,marginBottom:24}} className="print-section">
-            <KpiCard label="Leads Captados"    value={totals.leadsTotal}             icon={Users}/>
-            <KpiCard label="Vendas"            value={totals.vendas}                 icon={Target}/>
-            <KpiCard label="Conv. Média"       value={`${convRateMed.toFixed(1)}%`}  icon={TrendingUp}/>
-            {totals.valorVenda > 0 && <KpiCard label="Receita Total" value={fmtBRL(totals.valorVenda)} icon={DollarSign}/>}
-            {cplMed !== null && <KpiCard label="CPL Médio"  value={fmtBRL(cplMed)} icon={Activity}/>}
-            <KpiCard label="Investimento"      value={fmtBRL(totals.investimentoMidia)} icon={BarChart2}/>
+            <KpiCard label="Leads Captados"    value={totals.leadsTotal}                  icon={Users}/>
+            <KpiCard label="Vendas"            value={totals.vendas}                      icon={Target}/>
+            <KpiCard label="Conv. Média"       value={`${convRateMed.toFixed(1)}%`}       icon={TrendingUp}/>
+            {totals.valorVenda > 0    && <KpiCard label="Receita Total"  value={fmtBRL(totals.valorVenda)}        icon={DollarSign}/>}
+            <KpiCard label="Investimento"      value={fmtBRL(totals.investimentoMidia)}   icon={BarChart2}/>
+            {totals.valorGasto > 0    && <KpiCard label="Total Gasto"    value={fmtBRL(totals.valorGasto)}        icon={Activity}/>}
+            {saldoMensal !== null     && <KpiCard label="Saldo do Mês"   value={fmtBRL(saldoMensal)}              icon={TrendingUp} color={saldoMensal>=0?'var(--brand-cyan)':'var(--danger)'} sub="investido − gasto"/>}
+            {cplMed !== null          && <KpiCard label="CPL Médio"      value={fmtBRL(cplMed)}                   icon={DollarSign}/>}
           </div>
 
           {/* Weekly table */}
@@ -1348,7 +1501,7 @@
             <table className="data-table">
               <thead>
                 <tr style={{borderBottom:'1px solid var(--ink-border)'}}>
-                  {['Sem.','Período','Leads','Qualif.','Vendas','Receita','Invest.','Conv.%'].map(h=>(
+                  {['Sem.','Período','Leads','Qualif.','Vendas','Receita','Invest.','Gasto','Saldo','Conv.%'].map(h=>(
                     <th key={h}>{h}</th>
                   ))}
                 </tr>
@@ -1356,16 +1509,24 @@
               <tbody>
                 {monthEntries.map((e,i)=>{
                   const v = num(e.metrics.vendas || e.metrics.fechamentos);
-                  const cv = num(e.metrics.leadsTotal)>0 ? (v/num(e.metrics.leadsTotal)*100).toFixed(1) : '—';
+                  const lt = getLeadsTotal(e.metrics);
+                  const cv = lt > 0 ? (v/lt*100).toFixed(1) : '—';
+                  const gasto = num(e.metrics.valorGasto);
+                  const invest = getInvestTotal(e.metrics);
+                  const saldo = (invest > 0 && gasto > 0) ? invest - gasto : null;
                   return (
                     <tr key={e.id} style={{borderBottom:'1px solid var(--ink-border-soft)',background:i%2===0?'transparent':'var(--ink-raised)'}}>
                       <td style={{fontWeight:600,color:'var(--brand-blue)',fontFamily:'var(--mono)'}}>S{e.week}</td>
                       <td style={{color:'var(--mist-dim)',whiteSpace:'nowrap'}}>{e.weekLabel.split('·')[1]?.trim()||''}</td>
-                      <td style={{fontWeight:600}}>{num(e.metrics.leadsTotal)||'—'}</td>
-                      <td>{num(e.metrics.leadsQualificados)||'—'}</td>
+                      <td style={{fontWeight:600}}>{lt||'—'}</td>
+                      <td>{getLeadsQualTotal(e.metrics)||'—'}</td>
                       <td style={{fontWeight:600,color:'var(--brand-cyan)'}}>{v||'—'}</td>
                       <td style={{fontFamily:'var(--mono)'}}>{num(e.metrics.valorVenda)>0?fmtBRL(e.metrics.valorVenda):'—'}</td>
-                      <td style={{fontFamily:'var(--mono)'}}>{num(e.metrics.investimentoMidia)>0?fmtBRL(e.metrics.investimentoMidia):'—'}</td>
+                      <td style={{fontFamily:'var(--mono)'}}>{invest>0?fmtBRL(invest):'—'}</td>
+                      <td style={{fontFamily:'var(--mono)'}}>{gasto>0?fmtBRL(gasto):'—'}</td>
+                      <td style={{fontFamily:'var(--mono)',fontWeight:600,color:saldo===null?'var(--mist-muted)':saldo>=0?'var(--brand-cyan)':'var(--danger)'}}>
+                        {saldo===null?'—':fmtBRL(saldo)}
+                      </td>
                       <td style={{fontWeight:600}}>{cv}{cv!=='—'?'%':''}</td>
                     </tr>
                   );
@@ -1379,6 +1540,10 @@
                   <td style={{fontWeight:700,color:'var(--brand-cyan)'}}>{totals.vendas}</td>
                   <td style={{fontWeight:700,fontFamily:'var(--mono)'}}>{totals.valorVenda>0?fmtBRL(totals.valorVenda):'—'}</td>
                   <td style={{fontWeight:700,fontFamily:'var(--mono)'}}>{fmtBRL(totals.investimentoMidia)}</td>
+                  <td style={{fontWeight:700,fontFamily:'var(--mono)'}}>{totals.valorGasto>0?fmtBRL(totals.valorGasto):'—'}</td>
+                  <td style={{fontWeight:700,fontFamily:'var(--mono)',color:saldoMensal===null?'var(--mist-muted)':saldoMensal>=0?'var(--brand-cyan)':'var(--danger)'}}>
+                    {saldoMensal===null?'—':fmtBRL(saldoMensal)}
+                  </td>
                   <td style={{fontWeight:700}}>{convRateMed.toFixed(1)}%</td>
                 </tr>
               </tfoot>
@@ -1424,11 +1589,11 @@
     const totals = useMemo(() => {
       const t = { leadsTotal:0, leadsQualificados:0, vendas:0, valorVenda:0, investimentoMidia:0 };
       for (const e of recent) {
-        t.leadsTotal        += num(e.metrics.leadsTotal);
-        t.leadsQualificados += num(e.metrics.leadsQualificados);
+        t.leadsTotal        += getLeadsTotal(e.metrics);
+        t.leadsQualificados += getLeadsQualTotal(e.metrics);
         t.vendas            += num(e.metrics.vendas || e.metrics.fechamentos); // compat
         t.valorVenda        += num(e.metrics.valorVenda);
-        t.investimentoMidia += num(e.metrics.investimentoMidia);
+        t.investimentoMidia += getInvestTotal(e.metrics);
       }
       return t;
     }, [recent]);
@@ -1438,13 +1603,13 @@
     const avgLeadsPerWeek = recent.length > 0 ? (totals.leadsTotal/recent.length) : 0;
 
     const bestWeek = useMemo(() => recent.reduce((best, e) => {
-      const l = num(e.metrics.leadsTotal);
-      return l > (best ? num(best.metrics.leadsTotal) : -1) ? e : best;
+      const l = getLeadsTotal(e.metrics);
+      return l > (best ? getLeadsTotal(best.metrics) : -1) ? e : best;
     }, null), [recent]);
 
-    const worstWeek = useMemo(() => recent.filter(e=>num(e.metrics.leadsTotal)>0).reduce((worst, e) => {
-      const l = num(e.metrics.leadsTotal);
-      return (!worst || l < num(worst.metrics.leadsTotal)) ? e : worst;
+    const worstWeek = useMemo(() => recent.filter(e=>getLeadsTotal(e.metrics)>0).reduce((worst, e) => {
+      const l = getLeadsTotal(e.metrics);
+      return (!worst || l < getLeadsTotal(worst.metrics)) ? e : worst;
     }, null), [recent]);
 
     const funnelSteps = [
@@ -1453,10 +1618,10 @@
       {label:'Vendas',            value:totals.vendas},
     ].filter(s => s.value > 0);
 
-    const barData = recent.map(e => ({ label:`S${e.week}`, value:num(e.metrics.leadsTotal) }));
-    const lineData = recent.filter(e=>num(e.metrics.leadsTotal)>0).map(e => ({
+    const barData = recent.map(e => ({ label:`S${e.week}`, value:getLeadsTotal(e.metrics) }));
+    const lineData = recent.filter(e=>getLeadsTotal(e.metrics)>0).map(e => ({
       label:`S${e.week}`,
-      value: num(e.metrics.leadsTotal) > 0 ? (num(e.metrics.vendas||e.metrics.fechamentos)/num(e.metrics.leadsTotal)*100) : 0,
+      value: num(e.metrics.vendas||e.metrics.fechamentos)/getLeadsTotal(e.metrics)*100,
     }));
 
     if (filteredEntries.length === 0) return (
@@ -1508,7 +1673,7 @@
                 </div>
                 <div style={{fontSize:15,fontWeight:600,color:'var(--mist)'}}>{bestWeek.weekLabel}</div>
                 <div style={{fontSize:13,color:'var(--mist-dim)',marginTop:4}}>
-                  {num(bestWeek.metrics.leadsTotal)} leads · {num(bestWeek.metrics.vendas||bestWeek.metrics.fechamentos)} vendas
+                  {getLeadsTotal(bestWeek.metrics)} leads · {num(bestWeek.metrics.vendas||bestWeek.metrics.fechamentos)} vendas
                 </div>
               </div>
             )}
@@ -1519,7 +1684,7 @@
                 </div>
                 <div style={{fontSize:15,fontWeight:600,color:'var(--mist)'}}>{worstWeek.weekLabel}</div>
                 <div style={{fontSize:13,color:'var(--mist-dim)',marginTop:4}}>
-                  {num(worstWeek.metrics.leadsTotal)} leads · {num(worstWeek.metrics.vendas||worstWeek.metrics.fechamentos)} vendas
+                  {getLeadsTotal(worstWeek.metrics)} leads · {num(worstWeek.metrics.vendas||worstWeek.metrics.fechamentos)} vendas
                 </div>
               </div>
             )}
