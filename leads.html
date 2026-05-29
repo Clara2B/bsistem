@@ -17,6 +17,13 @@
 <body style="margin:0;padding:0;">
   <div id="root"></div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script>
+    const SUPABASE_URL     = 'https://rgfinndbwukcbwvgqdaa.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_CcPSf-1MHh6WVD8J723STg_yO2QXcea';
+    window.supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  </script>
+
   <script src="vendor/react.min.js"></script>
   <script src="vendor/react-dom.min.js"></script>
   <script src="vendor/babel.min.js"></script>
@@ -65,6 +72,9 @@
   const Layers       = makeIcon('Layers');
   const Save         = makeIcon('Save');
   const Filter       = makeIcon('Filter');
+  const Eye          = makeIcon('Eye');
+  const EyeOff       = makeIcon('EyeOff');
+  const LogOut       = makeIcon('LogOut');
   </script>
 
   <script type="text/babel">
@@ -97,10 +107,27 @@
      STORAGE
   ============================================================ */
   const storage = {
-    get: k => Promise.resolve(localStorage.getItem(k)),
-    set: (k,v) => Promise.resolve(localStorage.setItem(k, typeof v==='string' ? v : JSON.stringify(v))),
-    delete: k => Promise.resolve(localStorage.removeItem(k)),
-    getJSON: (k, def) => { try { const v=localStorage.getItem(k); return Promise.resolve(v?JSON.parse(v):def); } catch { return Promise.resolve(def); } },
+    async get(k) {
+      const sc = window.supabaseClient;
+      if (!sc) return localStorage.getItem(k);
+      const { data } = await sc.from('kv_store').select('value').eq('key', k).maybeSingle();
+      return data ? data.value : null;
+    },
+    async set(k, v) {
+      const val = typeof v === 'string' ? v : JSON.stringify(v);
+      const sc = window.supabaseClient;
+      if (!sc) { localStorage.setItem(k, val); return; }
+      await sc.from('kv_store').upsert({ key: k, value: val, updated_at: new Date().toISOString() });
+    },
+    async delete(k) {
+      const sc = window.supabaseClient;
+      if (!sc) { localStorage.removeItem(k); return; }
+      await sc.from('kv_store').delete().eq('key', k);
+    },
+    async getJSON(k, def) {
+      try { const v = await storage.get(k); return v ? JSON.parse(v) : def; }
+      catch { return def; }
+    },
   };
   const K = {
     entries:   'leads:entries:v1',
@@ -636,6 +663,109 @@
   }
 
   /* ============================================================
+     LOGIN SCREEN
+  ============================================================ */
+  function LoginScreen({ onLogin }) {
+    const [email, setEmail]     = useState('');
+    const [password, setPassword] = useState('');
+    const [showPwd, setShowPwd] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [error, setError]     = useState('');
+
+    async function handleSubmit(e) {
+      e.preventDefault();
+      setLoading(true); setError('');
+      const sc = window.supabaseClient;
+      if (!sc) { setError('Supabase não configurado.'); setLoading(false); return; }
+      const { data, error: authErr } = await sc.auth.signInWithPassword({ email, password });
+      if (authErr) { setError('Email ou senha inválidos.'); setLoading(false); return; }
+      const { data: profile } = await sc.from('profiles').select('name, role').eq('id', data.user.id).maybeSingle();
+      onLogin({
+        id: data.user.id,
+        email: data.user.email,
+        name: profile?.name || data.user.email.split('@')[0],
+        role: profile?.role || '',
+      });
+      setLoading(false);
+    }
+
+    return (
+      <div style={{ minHeight:'100vh', background:'#050608', display:'flex', alignItems:'center', justifyContent:'center', position:'relative', overflow:'hidden' }}>
+        <style>{`
+          .ll-input { width:100%; background:rgba(255,255,255,.04); border:1px solid #1e2940; border-radius:10px; padding:12px 14px; color:#e6eaf3; font-size:14px; outline:none; transition:border-color .2s,box-shadow .2s; box-sizing:border-box; font-family:inherit; }
+          .ll-input::placeholder { color:#4a5568; }
+          .ll-input:focus { border-color:#0166fc; box-shadow:0 0 0 3px rgba(1,102,252,.15); }
+          .ll-btn { width:100%; padding:13px; background:linear-gradient(90deg,#0166fc 0%,#009bed 50%,#1de4f0 100%); border:none; border-radius:12px; color:#fff; font-size:15px; font-weight:600; cursor:pointer; letter-spacing:-.01em; transition:opacity .2s,transform .15s; box-shadow:0 4px 22px rgba(1,102,252,.38); font-family:inherit; }
+          .ll-btn:hover:not(:disabled) { opacity:.9; transform:translateY(-1px); }
+          .ll-btn:disabled { opacity:.45; cursor:not-allowed; }
+        `}</style>
+        <div style={{ position:'absolute', top:'-160px', left:'-160px', width:620, height:620, borderRadius:'50%', background:'radial-gradient(circle,rgba(1,102,252,.13) 0%,transparent 65%)', pointerEvents:'none' }}/>
+        <div style={{ position:'absolute', bottom:'-140px', right:'-120px', width:520, height:520, borderRadius:'50%', background:'radial-gradient(circle,rgba(29,228,240,.09) 0%,transparent 65%)', pointerEvents:'none' }}/>
+        <div style={{ width:'min(420px,calc(100vw - 32px))', padding:'clamp(28px,5vw,44px) clamp(20px,5vw,40px) 32px', background:'rgba(11,13,17,.90)', backdropFilter:'blur(24px)', borderRadius:22, border:'1px solid rgba(34,39,50,.9)', boxShadow:'0 40px 100px rgba(0,0,0,.7)', position:'relative', zIndex:1 }}>
+          <div style={{ textAlign:'center', marginBottom:36 }}>
+            <BBothLogo size={26}/>
+            <div style={{ marginTop:14, display:'inline-flex', alignItems:'center', gap:6, background:'rgba(1,102,252,.1)', border:'1px solid rgba(1,102,252,.22)', borderRadius:20, padding:'4px 12px' }}>
+              <div style={{ width:5, height:5, borderRadius:'50%', background:'#1de4f0', boxShadow:'0 0 7px #1de4f0' }}/>
+              <span style={{ fontSize:10.5, color:'#1de4f0', letterSpacing:'.14em', textTransform:'uppercase', fontWeight:700 }}>Leads</span>
+            </div>
+            <div style={{ marginTop:20, fontSize:22, fontWeight:700, color:'#e6eaf3', letterSpacing:'-.025em', lineHeight:1.2 }}>Bem-vindo de volta</div>
+            <div style={{ marginTop:7, fontSize:14, color:'#8896a8' }}>Entre com sua conta B.BOTH para continuar</div>
+          </div>
+          <form onSubmit={handleSubmit}>
+            {error && (
+              <div style={{ display:'flex', alignItems:'center', gap:8, background:'rgba(239,100,100,.08)', border:'1px solid rgba(239,100,100,.2)', borderRadius:10, padding:'10px 14px', fontSize:13, color:'#ef9494', marginBottom:18 }}>
+                <AlertCircle size={14} color="#ef9494"/> {error}
+              </div>
+            )}
+            <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+              <div>
+                <label style={{ display:'block', fontSize:12, fontWeight:600, color:'#8896a8', letterSpacing:'.05em', textTransform:'uppercase', marginBottom:7 }}>Email</label>
+                <input className="ll-input" type="email" value={email} required autoFocus onChange={e=>setEmail(e.target.value)} placeholder="seu@email.com"/>
+              </div>
+              <div>
+                <label style={{ display:'block', fontSize:12, fontWeight:600, color:'#8896a8', letterSpacing:'.05em', textTransform:'uppercase', marginBottom:7 }}>Senha</label>
+                <div style={{ position:'relative' }}>
+                  <input className="ll-input" type={showPwd?'text':'password'} value={password} required onChange={e=>setPassword(e.target.value)} placeholder="••••••••" style={{ paddingRight:42 }}/>
+                  <button type="button" onClick={()=>setShowPwd(v=>!v)} style={{ position:'absolute', right:12, top:'50%', transform:'translateY(-50%)', background:'none', border:'none', cursor:'pointer', padding:2, color:'#4a5568', display:'flex', alignItems:'center' }}>
+                    {showPwd ? <EyeOff size={16}/> : <Eye size={16}/>}
+                  </button>
+                </div>
+              </div>
+            </div>
+            <button className="ll-btn" type="submit" disabled={loading} style={{ marginTop:24 }}>
+              {loading ? 'Entrando...' : 'Entrar →'}
+            </button>
+          </form>
+          <div style={{ marginTop:28, textAlign:'center', fontSize:11, color:'#4a5568', letterSpacing:'.12em', textTransform:'uppercase' }}>Be bold, be better</div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ============================================================
+     ACCESS DENIED
+  ============================================================ */
+  function AccessDenied({ user, onLogout }) {
+    return (
+      <div style={{ minHeight:'100vh', background:'#050608', display:'flex', alignItems:'center', justifyContent:'center' }}>
+        <div style={{ textAlign:'center', maxWidth:380, padding:'0 24px' }}>
+          <BBothLogo size={26}/>
+          <div style={{ marginTop:28, fontSize:42 }}>🔒</div>
+          <div style={{ marginTop:14, fontSize:20, fontWeight:700, color:'#e6eaf3' }}>Acesso restrito</div>
+          <div style={{ marginTop:10, fontSize:14, color:'#8896a8', lineHeight:1.6 }}>
+            O módulo de Leads é exclusivo para usuários com perfil{' '}
+            <strong style={{ color:'#1de4f0' }}>Geral</strong>.<br/>
+            Sua conta ({user.name}) não tem permissão para esta área.
+          </div>
+          <button onClick={onLogout} style={{ marginTop:24, display:'inline-flex', alignItems:'center', gap:7, padding:'10px 20px', borderRadius:10, border:'1px solid #1e2940', background:'#141922', color:'#8896a8', fontSize:13, cursor:'pointer', fontFamily:'inherit' }}>
+            <LogOut size={15}/> Sair da conta
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  /* ============================================================
      TOAST
   ============================================================ */
   function Toast({ toasts }) {
@@ -870,7 +1000,7 @@
   /* ============================================================
      LEADS HEADER
   ============================================================ */
-  function LeadsHeader({ tab, setTab, theme, onToggleTheme }) {
+  function LeadsHeader({ tab, setTab, theme, onToggleTheme, user, onLogout }) {
     const TABS = [
       { id:'semanal', label:'Análise Semanal' },
       { id:'mensal',  label:'Relatório Mensal' },
@@ -917,6 +1047,13 @@
           <button className="btn-icon no-print" onClick={onToggleTheme} title="Alternar tema" style={{flexShrink:0}}>
             {theme==='dark' ? <Sun size={16}/> : <Moon size={16}/>}
           </button>
+
+          {/* Logout */}
+          {user && onLogout && (
+            <button className="btn-icon no-print" onClick={onLogout} title={`Sair (${user.name})`} style={{flexShrink:0}}>
+              <LogOut size={16}/>
+            </button>
+          )}
         </div>
       </header>
     );
@@ -1745,6 +1882,8 @@
   function LeadsApp() {
     useFontInjection();
     const [theme, setTheme] = useState(() => localStorage.getItem(K.theme) || 'dark');
+    const [user, setUser] = useState(null);
+    const [authChecked, setAuthChecked] = useState(false);
     const [tab, setTab] = useState('semanal');
     const [entries, setEntries] = useState([]);
     const [companies, setCompanies] = useState([]);
@@ -1752,12 +1891,38 @@
     const [companyModal, setCompanyModal] = useState(null); // null | 'add' | company object
     const { toasts, showToast } = useToast();
 
+    // Check existing Supabase session on mount
     useEffect(() => {
+      (async () => {
+        const sc = window.supabaseClient;
+        if (!sc) { setAuthChecked(true); return; }
+        const { data: { session } } = await sc.auth.getSession();
+        if (session) {
+          const { data: profile } = await sc.from('profiles').select('name, role').eq('id', session.user.id).maybeSingle();
+          setUser({
+            id: session.user.id,
+            email: session.user.email,
+            name: profile?.name || session.user.email.split('@')[0],
+            role: profile?.role || '',
+          });
+        }
+        setAuthChecked(true);
+      })();
+    }, []);
+
+    async function handleLogout() {
+      const sc = window.supabaseClient;
+      if (sc) await sc.auth.signOut();
+      setUser(null);
+    }
+
+    useEffect(() => {
+      if (!user || user.role !== 'geral') return;
       Promise.all([
         storage.getJSON(K.entries, []),
         storage.getJSON(K.companies, []),
       ]).then(([e, c]) => { setEntries(e); setCompanies(c); });
-    }, []);
+    }, [user]);
 
     function toggleTheme() {
       const next = theme === 'dark' ? 'light' : 'dark';
@@ -1799,10 +1964,23 @@
 
     const sharedProps = { entries, companies, selectedCompanyId, showToast };
 
+    // Auth gates
+    if (!authChecked) return (
+      <div style={{ minHeight:'100vh', background:'#050608', display:'flex', alignItems:'center', justifyContent:'center' }}>
+        <GlobalStyles theme="dark"/>
+        <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:16 }}>
+          <BBothLogo size={26}/>
+          <div style={{ fontSize:13, color:'#4a5568', letterSpacing:'.06em' }}>Verificando sessão…</div>
+        </div>
+      </div>
+    );
+    if (!user) return <><GlobalStyles theme="dark"/><LoginScreen onLogin={u => setUser(u)}/></>;
+    if (user.role !== 'geral') return <><GlobalStyles theme="dark"/><AccessDenied user={user} onLogout={handleLogout}/></>;
+
     return (
       <>
         <GlobalStyles theme={theme}/>
-        <LeadsHeader tab={tab} setTab={setTab} theme={theme} onToggleTheme={toggleTheme}/>
+        <LeadsHeader tab={tab} setTab={setTab} theme={theme} onToggleTheme={toggleTheme} user={user} onLogout={handleLogout}/>
         <CompanyBar
           companies={companies}
           selected={selectedCompanyId}
