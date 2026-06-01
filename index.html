@@ -3360,7 +3360,7 @@ function ConfiguracaoTab({ entity, showToast }) {
 /* ============================================================
    CRONOGRAMA TAB (monthly calendar)
 ============================================================ */
-function CronogramaTab({ entity, role, showToast }) {
+function CronogramaTab({ entity, role, showToast, onCreateRoteiro }) {
   const [monthOffset, setMonthOffset] = useState(0);
   const [estaticos, setEstaticos] = useState([]);
   const [videos, setVideos] = useState([]);
@@ -3499,13 +3499,14 @@ function CronogramaTab({ entity, role, showToast }) {
           entity={entity}
           rules={rules}
           onClose={() => setSelectedDay(null)}
+          onCreateRoteiro={onCreateRoteiro}
         />
       )}
     </div>
   );
 }
 
-function DayDetailModal({ date, estaticos, videos, entity, rules, onClose }) {
+function DayDetailModal({ date, estaticos, videos, entity, rules, onClose, onCreateRoteiro }) {
   const wd = date.getDay();
   const slots = [];
   if (rules.estatico.includes(wd)) slots.push('estatico');
@@ -3536,8 +3537,17 @@ function DayDetailModal({ date, estaticos, videos, entity, rules, onClose }) {
                   <span className="badge" style={{ background: slotBg, color: slotColor }}>{slotLabel}</span>
                 </div>
                 {slotItems.length === 0 ? (
-                  <div style={{ padding: 14, background: 'var(--ink-soft)', borderRadius: 8, border: '1px dashed var(--ink-border)', fontSize: 13, color: 'var(--mist-muted)' }}>
-                    Nada agendado neste slot. Adicione na aba "{slot === 'estatico' ? 'Estáticos' : 'Vídeos Editados'}" com a data deste dia.
+                  <div style={{ padding: 14, background: 'var(--ink-soft)', borderRadius: 8, border: '1px dashed var(--ink-border)', fontSize: 13, color: 'var(--mist-muted)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+                    <span>Nada agendado neste slot. Adicione na aba "{slot === 'estatico' ? 'Estáticos' : 'Vídeos Editados'}" com a data deste dia.</span>
+                    {slot === 'estatico' && onCreateRoteiro && (
+                      <button
+                        className="btn btn-primary"
+                        style={{ fontSize: 12, padding: '5px 12px', flexShrink: 0 }}
+                        onClick={() => { onCreateRoteiro(date); onClose(); }}
+                      >
+                        <FileText size={13} /> Criar Roteiro
+                      </button>
+                    )}
                   </div>
                 ) : slotItems.map(v => (
                   <div key={v.id} className="item-card" style={{ marginBottom: 8 }}>
@@ -3796,6 +3806,7 @@ function CronogramaView() {
 ============================================================ */
 function BBothView({ role, showToast }) {
   const [activeTab, setActiveTab] = useState('roteiros');
+  const [roteirosKey, setRoteirosKey] = useState(0); // força reload ao criar roteiro via cronograma
 
   const tabs = [
     { id: 'roteiros',   label: 'Roteiros',       icon: FileText  },
@@ -3804,14 +3815,26 @@ function BBothView({ role, showToast }) {
     { id: 'cronograma', label: 'Cronograma',      icon: Calendar  },
   ];
 
+  async function handleCreateRoteiro(date) {
+    const iso = date.toISOString().slice(0, 10);
+    const [d, m, y] = [date.getDate(), date.getMonth() + 1, date.getFullYear()];
+    const title = `Estático — ${String(d).padStart(2,'0')}/${String(m).padStart(2,'0')}/${y}`;
+    const existing = await storage.getJSON(K.roteiros('bboth'), []);
+    const newItem = { id: uid(), title, status: 'para-gravar', notes: '', pdfKey: null, createdAt: Date.now() };
+    await storage.set(K.roteiros('bboth'), [newItem, ...existing]);
+    setRoteirosKey(k => k + 1); // força RoteirosTab a recarregar
+    setActiveTab('roteiros');
+    showToast('success', `Roteiro criado: ${title}`);
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflowY: 'auto' }}>
       <div className="fade-in">
         <EntityHeader entity={BBOTH_ENTITY} activeTab={activeTab} setActiveTab={setActiveTab} tabs={tabs} />
-        {activeTab === 'roteiros'   && <RoteirosTab   entityId="bboth" role={role} showToast={showToast} />}
+        {activeTab === 'roteiros'   && <RoteirosTab   key={roteirosKey} entityId="bboth" role={role} showToast={showToast} />}
         {activeTab === 'estaticos'  && <EstaticosTab  entityId="bboth" role={role} showToast={showToast} />}
         {activeTab === 'videos'     && <VideosTab     entityId="bboth" role={role} showToast={showToast} allEntities={[BBOTH_ENTITY]} />}
-        {activeTab === 'cronograma' && <CronogramaTab entity={BBOTH_ENTITY}  role={role} showToast={showToast} />}
+        {activeTab === 'cronograma' && <CronogramaTab entity={BBOTH_ENTITY} role={role} showToast={showToast} onCreateRoteiro={handleCreateRoteiro} />}
       </div>
     </div>
   );
