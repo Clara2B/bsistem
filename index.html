@@ -1609,9 +1609,12 @@ function Header({ mainSection, setMainSection, user, onLogout, onMenuToggle, the
 /* ============================================================
    B.BOTH LOGO (inline SVG)
 ============================================================ */
-function BBothLogo({ height = 28, withTagline = false }) {
+function BBothLogo({ height = 28, width, withTagline = false }) {
+  // Quando width é passado, height vira proporcional; quando só height, width é auto
+  const svgH = width ? undefined : height;
+  const svgW = width || undefined;
   return (
-    <svg height={height} viewBox="0 0 340 100" xmlns="http://www.w3.org/2000/svg" style={{ display: 'block' }}>
+    <svg height={svgH} width={svgW} viewBox="0 0 340 100" xmlns="http://www.w3.org/2000/svg" style={{ display: 'block' }}>
       <defs>
         <linearGradient id="bboth-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
           <stop offset="0%" stopColor="#0166fc" />
@@ -1789,7 +1792,7 @@ function EntityHeader({ entity, activeTab, setActiveTab, tabs }) {
               ? '0 4px 14px rgba(1,102,252,0.2), inset 0 1px 0 rgba(255,255,255,0.05)'
               : '0 4px 14px rgba(1,102,252,0.25), inset 0 1px 0 rgba(255,255,255,0.2)',
           }}>
-            {entity.type === 'agency' ? <BBothLogo height={20} /> :
+            {entity.type === 'agency' ? <BBothLogo width={38} /> :
              entity.type === 'group' ? 'UO' :
              entity.type === 'company' ? entity.name.slice(0, 2).toUpperCase() :
              entity.name.split(' ').map(p => p[0]).join('').slice(0, 2).toUpperCase()}
