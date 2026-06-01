@@ -295,39 +295,50 @@ const INITIAL_COMPANIES = [
 ];
 const BBOTH_ENTITY = { id: 'bboth', name: 'B.BOTH', type: 'agency' };
 
-// Seed: roteiros extraídos do cronograma_junho_2026.html
-// Cada entrada = um card estático do cronograma da B.BOTH
+// Seed: roteiros de ESTÁTICOS extraídos do cronograma_junho_2026.html
 const BBOTH_ROTEIROS_SEED = [
-  { day:  1, weekday:'Dom', time:'10h', quote:'Posicionamento é o problema que você se propõe a resolver.', cat:'Posicionamento' },
-  { day:  2, weekday:'Seg', time:'19h', quote:'Sem estratégia, não existe crescimento que escale.', cat:'Autoridade' },
-  { day:  3, weekday:'Ter', time:'10h', quote:'O cliente não compra serviço. Compra transformação.', cat:'Posicionamento' },
-  { day:  4, weekday:'Qua', time:'19h', quote:'Consistência é o que separa quem cresce de quem estagna.', cat:'Processo' },
-  { day:  5, weekday:'Qui', time:'08h', quote:'Autoridade se prova com resultado. Não se promete.', cat:'Autoridade' },
-  { day:  6, weekday:'Sex', time:'19h', quote:'Digital não é vitrine. É máquina de aquisição de clientes.', cat:'Educação' },
-  { day:  7, weekday:'Sáb', time:'10h', quote:'O mercado não te paga pelo esforço. Te paga pelo resultado.', cat:'Posicionamento' },
-  { day:  8, weekday:'Dom', time:'10h', quote:'Sem nicho claro, você vai competir por preço. Sempre.', cat:'Posicionamento' },
-  { day:  9, weekday:'Seg', time:'19h', quote:'Método é o que transforma talento em resultado previsível.', cat:'Processo' },
-  { day: 10, weekday:'Ter', time:'10h', quote:'Tráfego pago sem estratégia é só queimar dinheiro.', cat:'Educação' },
-  { day: 11, weekday:'Qua', time:'19h', quote:'Crescimento não é acaso. É processo estruturado.', cat:'Processo' },
-  { day: 12, weekday:'Qui', time:'10h', quote:'O melhor conteúdo não é o mais bonito. É o mais verdadeiro.', cat:'Autoridade' },
-  { day: 13, weekday:'Sex', time:'19h', quote:'Diagnostique antes de criar. Estrategize antes de postar.', cat:'Processo' },
-  { day: 14, weekday:'Sáb', time:'10h', quote:'Autoridade não se pede. Se constrói — resultado a resultado.', cat:'Posicionamento' },
-  { day: 15, weekday:'Dom', time:'10h', quote:'Especialista cobra mais. Generalista compete por preço. Escolha um lado.', cat:'Posicionamento' },
-  { day: 16, weekday:'Seg', time:'19h', quote:'Nicho não te limita. Te posiciona onde você pode ser o melhor.', cat:'Autoridade' },
-  { day: 17, weekday:'Ter', time:'10h', quote:'Retenção é o novo alcance. Qualidade é o novo volume.', cat:'Educação' },
-  { day: 18, weekday:'Qua', time:'19h', quote:'Visibilidade sem conversão é vaidade. Estratégia gera resultado.', cat:'Posicionamento' },
-  { day: 19, weekday:'Qui', time:'10h', quote:'O cliente ideal já existe. Você precisa aparecer na frente dele.', cat:'Tráfego' },
-  { day: 20, weekday:'Sex', time:'10h', quote:'Mais posts não é a resposta. Mais estratégia é.', cat:'Posicionamento' },
-  { day: 21, weekday:'Sáb', time:'10h', quote:'Marca forte não é a mais bonita. É a mais clara.', cat:'Autoridade' },
-  { day: 22, weekday:'Dom', time:'10h', quote:'Cada post é uma chance de gerar confiança — ou perder atenção.', cat:'Autoridade' },
-  { day: 23, weekday:'Seg', time:'19h', quote:'Prospecção ativa + conteúdo estratégico = crescimento constante.', cat:'Processo' },
-  { day: 24, weekday:'Ter', time:'10h', quote:'Sem diagnóstico, qualquer estratégia é chute no escuro.', cat:'Processo' },
-  { day: 25, weekday:'Qua', time:'19h', quote:'O conteúdo que gera salvamento é o que gera resultado.', cat:'Educação' },
-  { day: 26, weekday:'Qui', time:'10h', quote:'Crescer no digital não é questão de sorte. É questão de método.', cat:'Processo' },
-  { day: 27, weekday:'Sex', time:'19h', quote:'Posicionamento correto elimina a guerra de preço.', cat:'Posicionamento' },
-  { day: 28, weekday:'Sáb', time:'10h', quote:'O maior erro é esperar o momento certo. O momento certo é agora.', cat:'Posicionamento' },
-  { day: 29, weekday:'Dom', time:'10h', quote:'Um mês de estratégia vale mais do que um ano de improviso.', cat:'Autoridade' },
-  { day: 30, weekday:'Seg', time:'19h', quote:'Encerra junho. Começa o crescimento.', cat:'Posicionamento' },
+  { day:  1, weekday:'Dom', time:'10h', quote:'Posicionamento é o problema que você se propõe a resolver.', cat:'Posicionamento', type:'estatico' },
+  { day:  2, weekday:'Seg', time:'19h', quote:'Sem estratégia, não existe crescimento que escale.', cat:'Autoridade', type:'estatico' },
+  { day:  3, weekday:'Ter', time:'10h', quote:'O cliente não compra serviço. Compra transformação.', cat:'Posicionamento', type:'estatico' },
+  { day:  4, weekday:'Qua', time:'19h', quote:'Consistência é o que separa quem cresce de quem estagna.', cat:'Processo', type:'estatico' },
+  { day:  5, weekday:'Qui', time:'08h', quote:'Autoridade se prova com resultado. Não se promete.', cat:'Autoridade', type:'estatico' },
+  { day:  6, weekday:'Sex', time:'19h', quote:'Digital não é vitrine. É máquina de aquisição de clientes.', cat:'Educação', type:'estatico' },
+  { day:  7, weekday:'Sáb', time:'10h', quote:'O mercado não te paga pelo esforço. Te paga pelo resultado.', cat:'Posicionamento', type:'estatico' },
+  { day:  8, weekday:'Dom', time:'10h', quote:'Sem nicho claro, você vai competir por preço. Sempre.', cat:'Posicionamento', type:'estatico' },
+  { day:  9, weekday:'Seg', time:'19h', quote:'Método é o que transforma talento em resultado previsível.', cat:'Processo', type:'estatico' },
+  { day: 10, weekday:'Ter', time:'10h', quote:'Tráfego pago sem estratégia é só queimar dinheiro.', cat:'Educação', type:'estatico' },
+  { day: 11, weekday:'Qua', time:'19h', quote:'Crescimento não é acaso. É processo estruturado.', cat:'Processo', type:'estatico' },
+  { day: 12, weekday:'Qui', time:'10h', quote:'O melhor conteúdo não é o mais bonito. É o mais verdadeiro.', cat:'Autoridade', type:'estatico' },
+  { day: 13, weekday:'Sex', time:'19h', quote:'Diagnostique antes de criar. Estrategize antes de postar.', cat:'Processo', type:'estatico' },
+  { day: 14, weekday:'Sáb', time:'10h', quote:'Autoridade não se pede. Se constrói — resultado a resultado.', cat:'Posicionamento', type:'estatico' },
+  { day: 15, weekday:'Dom', time:'10h', quote:'Especialista cobra mais. Generalista compete por preço. Escolha um lado.', cat:'Posicionamento', type:'estatico' },
+  { day: 16, weekday:'Seg', time:'19h', quote:'Nicho não te limita. Te posiciona onde você pode ser o melhor.', cat:'Autoridade', type:'estatico' },
+  { day: 17, weekday:'Ter', time:'10h', quote:'Retenção é o novo alcance. Qualidade é o novo volume.', cat:'Educação', type:'estatico' },
+  { day: 18, weekday:'Qua', time:'19h', quote:'Visibilidade sem conversão é vaidade. Estratégia gera resultado.', cat:'Posicionamento', type:'estatico' },
+  { day: 19, weekday:'Qui', time:'10h', quote:'O cliente ideal já existe. Você precisa aparecer na frente dele.', cat:'Tráfego', type:'estatico' },
+  { day: 20, weekday:'Sex', time:'10h', quote:'Mais posts não é a resposta. Mais estratégia é.', cat:'Posicionamento', type:'estatico' },
+  { day: 21, weekday:'Sáb', time:'10h', quote:'Marca forte não é a mais bonita. É a mais clara.', cat:'Autoridade', type:'estatico' },
+  { day: 22, weekday:'Dom', time:'10h', quote:'Cada post é uma chance de gerar confiança — ou perder atenção.', cat:'Autoridade', type:'estatico' },
+  { day: 23, weekday:'Seg', time:'19h', quote:'Prospecção ativa + conteúdo estratégico = crescimento constante.', cat:'Processo', type:'estatico' },
+  { day: 24, weekday:'Ter', time:'10h', quote:'Sem diagnóstico, qualquer estratégia é chute no escuro.', cat:'Processo', type:'estatico' },
+  { day: 25, weekday:'Qua', time:'19h', quote:'O conteúdo que gera salvamento é o que gera resultado.', cat:'Educação', type:'estatico' },
+  { day: 26, weekday:'Qui', time:'10h', quote:'Crescer no digital não é questão de sorte. É questão de método.', cat:'Processo', type:'estatico' },
+  { day: 27, weekday:'Sex', time:'19h', quote:'Posicionamento correto elimina a guerra de preço.', cat:'Posicionamento', type:'estatico' },
+  { day: 28, weekday:'Sáb', time:'10h', quote:'O maior erro é esperar o momento certo. O momento certo é agora.', cat:'Posicionamento', type:'estatico' },
+  { day: 29, weekday:'Dom', time:'10h', quote:'Um mês de estratégia vale mais do que um ano de improviso.', cat:'Autoridade', type:'estatico' },
+  { day: 30, weekday:'Seg', time:'19h', quote:'Encerra junho. Começa o crescimento.', cat:'Posicionamento', type:'estatico' },
+];
+
+// Seed: roteiros de REELS — Terças e Quintas de junho (conforme cronograma)
+const BBOTH_REELS_SEED = [
+  { day:  3, weekday:'Ter', quote:'O cliente não compra serviço. Compra transformação.', cat:'Posicionamento' },
+  { day:  5, weekday:'Qui', quote:'Autoridade se prova com resultado. Não se promete.', cat:'Autoridade' },
+  { day: 10, weekday:'Ter', quote:'Tráfego pago sem estratégia é só queimar dinheiro.', cat:'Educação' },
+  { day: 12, weekday:'Qui', quote:'O melhor conteúdo não é o mais bonito. É o mais verdadeiro.', cat:'Autoridade' },
+  { day: 17, weekday:'Ter', quote:'Retenção é o novo alcance. Qualidade é o novo volume.', cat:'Educação' },
+  { day: 19, weekday:'Qui', quote:'O cliente ideal já existe. Você precisa aparecer na frente dele.', cat:'Tráfego' },
+  { day: 24, weekday:'Ter', quote:'Sem diagnóstico, qualquer estratégia é chute no escuro.', cat:'Processo' },
+  { day: 26, weekday:'Qui', quote:'Crescer no digital não é questão de sorte. É questão de método.', cat:'Processo' },
 ];
 
 const DAYS_SHORT_PT = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
@@ -1701,6 +1712,7 @@ function StatusBadge({ status }) {
 function RoteirosTab({ entityId, role, showToast }) {
   const [items, setItems] = useState([]);
   const [filter, setFilter] = useState('all');
+  const [typeFilter, setTypeFilter] = useState('all'); // 'all' | 'estatico' | 'reels'
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -1754,31 +1766,49 @@ function RoteirosTab({ entityId, role, showToast }) {
     await saveItems(items.map(i => i.id === item.id ? { ...i, status: newStatus } : i));
   }
 
+  const hasTypes = items.some(i => i.type === 'estatico' || i.type === 'reels');
+
   const filtered = items
     .filter(i => filter === 'all' || i.status === filter)
+    .filter(i => typeFilter === 'all' || (i.type || 'estatico') === typeFilter)
     .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+
+  const TYPE_STYLE = {
+    estatico: { label: 'ESTÁTICO', bg: 'rgba(1,102,252,0.15)',  color: COLORS.brandBlue },
+    reels:    { label: 'REELS',    bg: 'rgba(245,179,66,0.15)', color: COLORS.warn      },
+  };
 
   return (
     <div className="tab-content">
-      <div className="filter-bar">
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-          {[
-            { id: 'all', label: 'Todos', count: items.length },
-            { id: 'para-gravar', label: 'Para gravar', count: items.filter(i => i.status === 'para-gravar').length },
-            { id: 'gravado', label: 'Gravado', count: items.filter(i => i.status === 'gravado').length },
+      <div className="filter-bar" style={{ flexWrap: 'wrap', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', flex: 1 }}>
+          {/* Filtro por tipo (só aparece se há itens com type) */}
+          {hasTypes && [
+            { id: 'all',      label: 'Todos',     count: items.length },
+            { id: 'estatico', label: 'Estáticos', count: items.filter(i => (i.type||'estatico')==='estatico').length },
+            { id: 'reels',    label: 'Reels',     count: items.filter(i => i.type==='reels').length },
           ].map(f => (
-            <button
-              key={f.id}
-              onClick={() => setFilter(f.id)}
-              className="btn"
-              style={{
-                background: filter === f.id ? 'var(--ink-raised)' : 'transparent',
-                borderColor: filter === f.id ? 'var(--ink-border)' : 'transparent',
-                color: filter === f.id ? 'var(--mist)' : 'var(--mist-dim)',
-              }}
-            >
-              {f.label}
-              <span style={{ fontSize: 11, color: 'var(--mist-muted)', marginLeft: 4 }}>{f.count}</span>
+            <button key={f.id} onClick={() => setTypeFilter(f.id)} className="btn" style={{
+              background: typeFilter === f.id ? 'var(--ink-raised)' : 'transparent',
+              borderColor: typeFilter === f.id ? 'var(--ink-border)' : 'transparent',
+              color: typeFilter === f.id ? 'var(--mist)' : 'var(--mist-dim)',
+            }}>
+              {f.label}<span style={{ fontSize: 11, color: 'var(--mist-muted)', marginLeft: 4 }}>{f.count}</span>
+            </button>
+          ))}
+          {hasTypes && <div style={{ width: 1, background: 'var(--ink-border)', margin: '0 2px' }}/>}
+          {/* Filtro por status */}
+          {[
+            { id: 'all',        label: 'Todos',       count: items.filter(i => typeFilter==='all'||(i.type||'estatico')===typeFilter).length },
+            { id: 'para-gravar',label: 'Para gravar', count: items.filter(i => i.status==='para-gravar'&&(typeFilter==='all'||(i.type||'estatico')===typeFilter)).length },
+            { id: 'gravado',    label: 'Gravado',     count: items.filter(i => i.status==='gravado'&&(typeFilter==='all'||(i.type||'estatico')===typeFilter)).length },
+          ].map(f => (
+            <button key={f.id} onClick={() => setFilter(f.id)} className="btn" style={{
+              background: filter === f.id ? 'var(--ink-raised)' : 'transparent',
+              borderColor: filter === f.id ? 'var(--ink-border)' : 'transparent',
+              color: filter === f.id ? 'var(--mist)' : 'var(--mist-dim)',
+            }}>
+              {f.label}<span style={{ fontSize: 11, color: 'var(--mist-muted)', marginLeft: 4 }}>{f.count}</span>
             </button>
           ))}
         </div>
@@ -1824,6 +1854,13 @@ function RoteirosTab({ entityId, role, showToast }) {
                     <div style={{ fontSize: 13, color: 'var(--mist-dim)', marginLeft: 28, marginBottom: 8 }}>{item.description}</div>
                   )}
                   <div style={{ display: 'flex', gap: 8, marginLeft: 28, alignItems: 'center', flexWrap: 'wrap' }}>
+                    {item.type && TYPE_STYLE[item.type] && (
+                      <span style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: '.07em',
+                        background: TYPE_STYLE[item.type].bg, color: TYPE_STYLE[item.type].color,
+                        padding: '2px 7px', borderRadius: 5 }}>
+                        {TYPE_STYLE[item.type].label}
+                      </span>
+                    )}
                     {item.pdfKey && (
                       <button onClick={() => handleDownload(item)} className="btn" style={{ padding: '5px 10px', fontSize: 12 }}>
                         <FileText size={12} /> {item.pdfFilename} <Download size={11} style={{ opacity: 0.6 }} />
@@ -1862,6 +1899,7 @@ function RoteiroModal({ item, onClose, onSave, showToast }) {
   const [title, setTitle] = useState(item?.title || '');
   const [description, setDescription] = useState(item?.description || '');
   const [status, setStatus] = useState(item?.status || 'para-gravar');
+  const [type, setType] = useState(item?.type || 'estatico');
   const [pdfFilename, setPdfFilename] = useState(item?.pdfFilename || '');
   const [pdfKey, setPdfKey] = useState(item?.pdfKey || null);
   const [uploading, setUploading] = useState(false);
@@ -1891,7 +1929,7 @@ function RoteiroModal({ item, onClose, onSave, showToast }) {
 
   function submit() {
     if (!title.trim()) { showToast('error', 'Título é obrigatório'); return; }
-    onSave({ title: title.trim(), description: description.trim(), status, pdfKey, pdfFilename });
+    onSave({ title: title.trim(), description: description.trim(), status, type, pdfKey, pdfFilename });
   }
 
   return (
@@ -1909,6 +1947,24 @@ function RoteiroModal({ item, onClose, onSave, showToast }) {
           <div>
             <label className="label">Descrição (opcional)</label>
             <textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Observações, pauta, etc." />
+          </div>
+          <div>
+            <label className="label">Tipo</label>
+            <div style={{ display: 'flex', gap: 6 }}>
+              {[{ id: 'estatico', label: 'Estático' }, { id: 'reels', label: 'Reels' }].map(t => (
+                <button
+                  key={t.id}
+                  onClick={() => setType(t.id)}
+                  className="btn"
+                  style={{
+                    flex: 1, justifyContent: 'center',
+                    background: type === t.id ? 'var(--brand-soft)' : 'transparent',
+                    color: type === t.id ? 'var(--brand-cyan)' : 'var(--mist-dim)',
+                    borderColor: type === t.id ? 'rgba(1,102,252,0.22)' : 'var(--ink-border)',
+                  }}
+                >{t.label}</button>
+              ))}
+            </div>
           </div>
           <div>
             <label className="label">Status</label>
@@ -4220,20 +4276,31 @@ function App() {
         await storage.set('app:seed:estaticos:v1', 'true');
       }
 
-      // Seed roteiros B.BOTH a partir do cronograma junho 2026
-      const bbothSeedDone = await storage.get('app:seed:bboth:roteiros:v1');
+      // Seed roteiros B.BOTH a partir do cronograma junho 2026 (v2: estáticos + reels separados)
+      const bbothSeedDone = await storage.get('app:seed:bboth:roteiros:v2');
       if (!bbothSeedDone) {
-        const roteiros = BBOTH_ROTEIROS_SEED.map(r => ({
+        const estaticos = BBOTH_ROTEIROS_SEED.map(r => ({
           id: uid(),
           title: `"${r.quote}"`,
           description: `${r.cat} · ${r.time} · ${r.weekday}, ${String(r.day).padStart(2,'0')}/06`,
           status: 'para-gravar',
+          type: 'estatico',
           pdfKey: null,
           pdfFilename: null,
           createdAt: new Date(2026, 5, r.day, 9, 0, 0).getTime(),
         }));
-        await storage.set(K.roteiros('bboth'), roteiros);
-        await storage.set('app:seed:bboth:roteiros:v1', 'true');
+        const reels = BBOTH_REELS_SEED.map(r => ({
+          id: uid(),
+          title: `Reels — ${r.weekday}, ${String(r.day).padStart(2,'0')}/06`,
+          description: `${r.cat} · Tema: ${r.quote}`,
+          status: 'para-gravar',
+          type: 'reels',
+          pdfKey: null,
+          pdfFilename: null,
+          createdAt: new Date(2026, 5, r.day, 10, 0, 0).getTime(),
+        }));
+        await storage.set(K.roteiros('bboth'), [...estaticos, ...reels]);
+        await storage.set('app:seed:bboth:roteiros:v2', 'true');
       }
 
       setHydrated(true);
