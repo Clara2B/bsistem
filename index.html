@@ -385,6 +385,14 @@ function getDriveDownloadUrl(url) {
   } catch (_) {}
   return null;
 }
+// Ordena itens por scheduledDate asc; sem data vai para o fim; createdAt desc como desempate.
+function sortByScheduledDate(a, b) {
+  if (a.scheduledDate && b.scheduledDate) return a.scheduledDate.localeCompare(b.scheduledDate);
+  if (a.scheduledDate) return -1;
+  if (b.scheduledDate) return 1;
+  return (b.createdAt || 0) - (a.createdAt || 0);
+}
+
 // Faz parse de 'YYYY-MM-DD' como hor\u00e1rio LOCAL, evitando bug de fuso D-1.
 function parseLocalDate(str) {
   if (!str) return null;
@@ -1709,7 +1717,9 @@ function RoteirosTab({ entityId, role, showToast }) {
     await saveItems(items.map(i => i.id === item.id ? { ...i, status: newStatus } : i));
   }
 
-  const filtered = items.filter(i => filter === 'all' || i.status === filter);
+  const filtered = items
+    .filter(i => filter === 'all' || i.status === filter)
+    .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
 
   return (
     <div className="tab-content">
@@ -2032,7 +2042,9 @@ function EstaticosTab({ entityId, role, showToast }) {
     }
   }
 
-  const filtered = items.filter(i => filter === 'all' || i.status === filter);
+  const filtered = items
+    .filter(i => filter === 'all' || i.status === filter)
+    .sort(sortByScheduledDate);
 
   const TYPE_BADGE = {
     imagem:    { label: 'ESTÁTICO',  bg: 'rgba(1,102,252,0.92)' },
@@ -2942,7 +2954,9 @@ function VideosTab({ entityId, role, showToast, allEntities }) {
     await saveItems(items.map(i => i.id === item.id ? { ...i, status: newStatus } : i));
   }
 
-  const filtered = items.filter(i => filter === 'all' || i.status === filter);
+  const filtered = items
+    .filter(i => filter === 'all' || i.status === filter)
+    .sort(sortByScheduledDate);
 
   return (
     <div className="tab-content">
@@ -3776,14 +3790,237 @@ function CronogramaView() {
 }
 
 /* ============================================================
-   B.BOTH VIEW (placeholder)
+   B.BOTH VIEW — Agenda de postagem unificada
 ============================================================ */
-function BBothView() {
+function BBothView({ entities }) {
+  const [allItems, setAllItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [imgCache, setImgCache] = useState({});
+  const [thumbCache, setThumbCache] = useState({});
+  const [typeFilter, setTypeFilter] = useState('all');   // 'all' | 'estatico' | 'video'
+  const [timeFilter, setTimeFilter] = useState('upcoming'); // 'upcoming' | 'today' | 'week' | 'all'
+
+  const allEntityList = useMemo(() => {
+    const dirs = entities?.directors || [];
+    const group = entities?.group ? [entities.group] : [];
+    const companies = entities?.companies || [];
+    return [...dirs, ...group, ...companies];
+  }, [entities]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      const results = [];
+      const iCache = {};
+      const tCache = {};
+
+      await Promise.all(allEntityList.map(async (entity) => {
+        const [estaticos, videos] = await Promise.all([
+          storage.getJSON(K.estaticos(entity.id), []),
+          storage.getJSON(K.videos(entity.id), []),
+        ]);
+        for (const item of estaticos.filter(i => i.status === 'para-postar')) {
+          results.push({ ...item, entityId: entity.id, entityName: entity.name, entityType: entity.type, contentType: 'estatico' });
+          const firstKey = item.type === 'carrossel' ? item.imageKeys?.[0] : item.imageKey;
+          if (firstKey && !iCache[firstKey]) {
+            const t = await storage.get(K.image(firstKey));
+            if (t) iCache[firstKey] = t;
+          }
+        }
+        for (const item of videos.filter(i => i.status === 'para-postar')) {
+          results.push({ ...item, entityId: entity.id, entityName: entity.name, entityType: entity.type, contentType: 'video' });
+          if (item.thumbKey && !tCache[item.thumbKey]) {
+            const t = await storage.get(K.thumb(item.thumbKey));
+            if (t) tCache[item.thumbKey] = t;
+          }
+        }
+      }));
+
+      if (!cancelled) {
+        setAllItems(results);
+        setImgCache(iCache);
+        setThumbCache(tCache);
+        setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [allEntityList]);
+
+  const today = new Date().toISOString().slice(0, 10);
+  const weekEnd = (() => { const d = new Date(); d.setDate(d.getDate() + 7); return d.toISOString().slice(0, 10); })();
+
+  const visibleItems = useMemo(() => {
+    let items = [...allItems].sort(sortByScheduledDate);
+    if (typeFilter !== 'all') items = items.filter(i => i.contentType === typeFilter);
+    if (timeFilter === 'today')    items = items.filter(i => i.scheduledDate === today);
+    else if (timeFilter === 'week') items = items.filter(i => i.scheduledDate && i.scheduledDate >= today && i.scheduledDate <= weekEnd);
+    else if (timeFilter === 'upcoming') items = items.filter(i => !i.scheduledDate || i.scheduledDate >= today);
+    return items;
+  }, [allItems, typeFilter, timeFilter, today, weekEnd]);
+
+  // Group by date key
+  const groups = useMemo(() => {
+    const g = {};
+    for (const item of visibleItems) {
+      const key = item.scheduledDate || '__sem-data__';
+      if (!g[key]) g[key] = [];
+      g[key].push(item);
+    }
+    return g;
+  }, [visibleItems]);
+
+  const groupKeys = Object.keys(groups).sort((a, b) => {
+    if (a === '__sem-data__') return 1;
+    if (b === '__sem-data__') return -1;
+    return a.localeCompare(b);
+  });
+
+  function entityDot(type) {
+    if (type === 'director') return COLORS.brandBlue;
+    if (type === 'group') return COLORS.brandCyan;
+    return '#7c3aed';
+  }
+  function fmtDate(dateStr) {
+    if (!dateStr || dateStr === '__sem-data__') return 'Sem data agendada';
+    return parseLocalDate(dateStr).toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' });
+  }
+
+  const pendingCount = allItems.length;
+
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 20, padding: 60, minHeight: 'calc(100vh - 57px)' }}>
-      <BBothLogo height={72} withTagline />
-      <div style={{ marginTop: 8, fontSize: 13, color: 'var(--mist-dim)', textAlign: 'center', maxWidth: 320, lineHeight: 1.6 }}>
-        Área reservada para gestão de conteúdo da própria agência B.BOTH.<br />Em breve.
+    <div style={{ flex: 1, overflow: 'auto', padding: '24px 24px 48px' }}>
+      <div style={{ maxWidth: 960, margin: '0 auto' }}>
+
+        {/* Header row */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 22, gap: 16, flexWrap: 'wrap' }}>
+          <div>
+            <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--mist)', letterSpacing: '-0.02em' }}>Agenda de Postagem</div>
+            <div style={{ fontSize: 12.5, color: 'var(--mist-dim)', marginTop: 3 }}>
+              {loading ? 'Carregando…' : `${pendingCount} ${pendingCount === 1 ? 'item pendente' : 'itens pendentes'} em todas as entidades`}
+            </div>
+          </div>
+
+          {/* Filter pills */}
+          <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', alignItems: 'center' }}>
+            {[
+              { id: 'upcoming', label: 'Próximos' },
+              { id: 'today',    label: 'Hoje' },
+              { id: 'week',     label: '7 dias' },
+              { id: 'all',      label: 'Todos' },
+            ].map(f => (
+              <button key={f.id} className="btn" onClick={() => setTimeFilter(f.id)} style={{
+                fontSize: 12, padding: '5px 11px',
+                background: timeFilter === f.id ? 'var(--ink-raised)' : 'transparent',
+                borderColor: timeFilter === f.id ? 'var(--ink-border)' : 'transparent',
+                color: timeFilter === f.id ? 'var(--mist)' : 'var(--mist-dim)',
+              }}>{f.label}</button>
+            ))}
+            <div style={{ width: 1, height: 18, background: 'var(--ink-border)', margin: '0 2px' }}/>
+            {[
+              { id: 'all',      label: 'Tudo' },
+              { id: 'estatico', label: 'Estáticos' },
+              { id: 'video',    label: 'Vídeos' },
+            ].map(f => (
+              <button key={f.id} className="btn" onClick={() => setTypeFilter(f.id)} style={{
+                fontSize: 12, padding: '5px 11px',
+                background: typeFilter === f.id ? 'var(--ink-raised)' : 'transparent',
+                borderColor: typeFilter === f.id ? 'var(--ink-border)' : 'transparent',
+                color: typeFilter === f.id ? 'var(--mist)' : 'var(--mist-dim)',
+              }}>{f.label}</button>
+            ))}
+          </div>
+        </div>
+
+        {/* Loading */}
+        {loading && (
+          <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--mist-dim)', fontSize: 13 }}>
+            Carregando conteúdo de todas as entidades…
+          </div>
+        )}
+
+        {/* Empty state */}
+        {!loading && groupKeys.length === 0 && (
+          <div style={{ textAlign: 'center', padding: '64px 0' }}>
+            <CheckCircle2 size={32} color="var(--mist-muted)" style={{ margin: '0 auto 12px', display: 'block' }}/>
+            <div style={{ fontSize: 14, color: 'var(--mist-dim)' }}>
+              {pendingCount === 0 ? 'Nenhum conteúdo marcado como "Para postar"' : 'Nenhum item para este filtro'}
+            </div>
+          </div>
+        )}
+
+        {/* Date groups */}
+        {!loading && groupKeys.map(dateKey => {
+          const noDate   = dateKey === '__sem-data__';
+          const isPast   = !noDate && dateKey < today;
+          const isToday  = dateKey === today;
+          const groupItems = groups[dateKey];
+
+          return (
+            <div key={dateKey} style={{ marginBottom: 28 }}>
+              {/* Date header */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                <span style={{
+                  fontSize: 11.5, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
+                  color: isToday ? COLORS.brandCyan : isPast ? COLORS.danger : 'var(--mist-dim)',
+                  padding: '2px 8px', borderRadius: 6,
+                  background: isToday ? COLORS.cyanSoft : isPast ? 'rgba(245,101,101,0.08)' : 'transparent',
+                }}>
+                  {fmtDate(dateKey)}
+                </span>
+                {isToday && (
+                  <span style={{ fontSize: 9.5, fontWeight: 700, color: COLORS.brandCyan, background: COLORS.cyanSoft, padding: '2px 7px', borderRadius: 999, letterSpacing: '.1em' }}>HOJE</span>
+                )}
+                {isPast && !noDate && (
+                  <span style={{ fontSize: 9.5, fontWeight: 700, color: COLORS.danger, background: 'rgba(245,101,101,0.08)', padding: '2px 7px', borderRadius: 999, letterSpacing: '.1em' }}>ATRASADO</span>
+                )}
+                <div style={{ flex: 1, height: 1, background: 'var(--ink-border-soft)' }}/>
+                <span style={{ fontSize: 11, color: 'var(--mist-muted)' }}>{groupItems.length} {groupItems.length === 1 ? 'item' : 'itens'}</span>
+              </div>
+
+              {/* Cards */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: 10 }}>
+                {groupItems.map(item => {
+                  const firstImgKey = item.type === 'carrossel' ? item.imageKeys?.[0] : item.imageKey;
+                  const thumb = firstImgKey ? imgCache[firstImgKey] : (item.thumbKey ? thumbCache[item.thumbKey] : null);
+                  const typeBadge = item.contentType === 'video' ? { label: 'VÍDEO', bg: '#b45309' }
+                    : item.type === 'carrossel' ? { label: 'CARROSSEL', bg: '#7c3aed' }
+                    : item.type === 'video'     ? { label: 'VÍDEO/GIF', bg: '#b45309' }
+                    : { label: 'ESTÁTICO', bg: COLORS.brandBlue };
+
+                  return (
+                    <div key={item.id} className="card" style={{ overflow: 'hidden' }}>
+                      {/* Thumbnail */}
+                      <div style={{ height: 105, background: 'var(--ink-soft)', position: 'relative', overflow: 'hidden' }}>
+                        {thumb
+                          ? <img src={thumb} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }}/>
+                          : <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--mist-muted)' }}>
+                              {item.contentType === 'video' ? <Video size={22}/> : <ImageIcon size={22}/>}
+                            </div>
+                        }
+                        <div style={{ position: 'absolute', top: 6, left: 6, fontSize: 9, fontWeight: 700, background: typeBadge.bg, color: '#fff', padding: '2px 5px', borderRadius: 4, letterSpacing: '.06em' }}>
+                          {typeBadge.label}
+                        </div>
+                      </div>
+                      {/* Info */}
+                      <div style={{ padding: '9px 11px' }}>
+                        <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--mist)', marginBottom: 5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {item.title || '—'}
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                          <div style={{ width: 6, height: 6, borderRadius: '50%', background: entityDot(item.entityType), flexShrink: 0 }}/>
+                          <span style={{ fontSize: 11, color: 'var(--mist-dim)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {item.entityName}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -3999,7 +4236,7 @@ function App() {
       <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
         <Header mainSection={mainSection} setMainSection={handleMainSectionChange} user={user} onLogout={handleLogout} onMenuToggle={() => setSidebarOpen(o => !o)} theme={theme} onToggleTheme={toggleTheme} />
         {mainSection === 'cronograma' && <CronogramaView />}
-        {mainSection === 'bboth' && <BBothView />}
+        {mainSection === 'bboth' && <BBothView entities={entities} />}
         {(mainSection === 'diretoria' || mainSection === 'clientes') && (
         <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
           <Sidebar
