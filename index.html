@@ -293,6 +293,7 @@ const INITIAL_COMPANIES = [
   { id: 'sw', name: 'SW', type: 'company' },
   { id: 'renova', name: 'ReNova', type: 'company' },
 ];
+const BBOTH_ENTITY = { id: 'bboth', name: 'B.BOTH', type: 'agency' };
 
 const DAYS_SHORT_PT = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 const MONTHS_PT = [
@@ -1589,7 +1590,7 @@ function Sidebar({ section, setSection, entities, currentId, setCurrentId, onAdd
    ENTITY HEADER + TABS
 ============================================================ */
 function EntityHeader({ entity, activeTab, setActiveTab, tabs }) {
-  const typeLabel = entity.type === 'director' ? 'Diretor' : entity.type === 'group' ? 'Grupo' : 'Empresa';
+  const typeLabel = entity.type === 'agency' ? 'Agência' : entity.type === 'director' ? 'Diretor' : entity.type === 'group' ? 'Grupo' : 'Empresa';
   return (
     <div className="entity-header-box" style={{ borderBottom: '1px solid var(--ink-border-soft)', position: 'relative', zIndex: 1 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
@@ -1603,7 +1604,8 @@ function EntityHeader({ entity, activeTab, setActiveTab, tabs }) {
             letterSpacing: '-0.02em',
             boxShadow: '0 4px 14px rgba(1,102,252,0.25), inset 0 1px 0 rgba(255,255,255,0.2)',
           }}>
-            {entity.type === 'group' ? 'UO' :
+            {entity.type === 'agency' ? <BBothLogo height={18} /> :
+             entity.type === 'group' ? 'UO' :
              entity.type === 'company' ? entity.name.slice(0, 2).toUpperCase() :
              entity.name.split(' ').map(p => p[0]).join('').slice(0, 2).toUpperCase()}
           </div>
@@ -3790,9 +3792,33 @@ function CronogramaView() {
 }
 
 /* ============================================================
-   B.BOTH VIEW — Agenda de postagem unificada
+   B.BOTH VIEW — Conteúdo da agência
 ============================================================ */
-function BBothView({ entities }) {
+function BBothView({ role, showToast }) {
+  const [activeTab, setActiveTab] = useState('roteiros');
+
+  const tabs = [
+    { id: 'roteiros',   label: 'Roteiros',       icon: FileText  },
+    { id: 'estaticos',  label: 'Estáticos',       icon: ImageIcon },
+    { id: 'videos',     label: 'Vídeos Editados', icon: Video     },
+    { id: 'cronograma', label: 'Cronograma',      icon: Calendar  },
+  ];
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflowY: 'auto' }}>
+      <div className="fade-in">
+        <EntityHeader entity={BBOTH_ENTITY} activeTab={activeTab} setActiveTab={setActiveTab} tabs={tabs} />
+        {activeTab === 'roteiros'   && <RoteirosTab   entityId="bboth" role={role} showToast={showToast} />}
+        {activeTab === 'estaticos'  && <EstaticosTab  entityId="bboth" role={role} showToast={showToast} />}
+        {activeTab === 'videos'     && <VideosTab     entityId="bboth" role={role} showToast={showToast} allEntities={[BBOTH_ENTITY]} />}
+        {activeTab === 'cronograma' && <CronogramaTab entity={BBOTH_ENTITY}  role={role} showToast={showToast} />}
+      </div>
+    </div>
+  );
+}
+
+/* — antigo BBothView (agenda unificada) — removido, substituído acima — */
+function _UNUSED_BBothAgenda({ entities }) {
   const [allItems, setAllItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [imgCache, setImgCache] = useState({});
@@ -4236,7 +4262,7 @@ function App() {
       <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
         <Header mainSection={mainSection} setMainSection={handleMainSectionChange} user={user} onLogout={handleLogout} onMenuToggle={() => setSidebarOpen(o => !o)} theme={theme} onToggleTheme={toggleTheme} />
         {mainSection === 'cronograma' && <CronogramaView />}
-        {mainSection === 'bboth' && <BBothView entities={entities} />}
+        {mainSection === 'bboth' && <BBothView role={role} showToast={showToast} />}
         {(mainSection === 'diretoria' || mainSection === 'clientes') && (
         <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
           <Sidebar
