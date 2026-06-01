@@ -295,6 +295,41 @@ const INITIAL_COMPANIES = [
 ];
 const BBOTH_ENTITY = { id: 'bboth', name: 'B.BOTH', type: 'agency' };
 
+// Seed: roteiros extraídos do cronograma_junho_2026.html
+// Cada entrada = um card estático do cronograma da B.BOTH
+const BBOTH_ROTEIROS_SEED = [
+  { day:  1, weekday:'Dom', time:'10h', quote:'Posicionamento é o problema que você se propõe a resolver.', cat:'Posicionamento' },
+  { day:  2, weekday:'Seg', time:'19h', quote:'Sem estratégia, não existe crescimento que escale.', cat:'Autoridade' },
+  { day:  3, weekday:'Ter', time:'10h', quote:'O cliente não compra serviço. Compra transformação.', cat:'Posicionamento' },
+  { day:  4, weekday:'Qua', time:'19h', quote:'Consistência é o que separa quem cresce de quem estagna.', cat:'Processo' },
+  { day:  5, weekday:'Qui', time:'08h', quote:'Autoridade se prova com resultado. Não se promete.', cat:'Autoridade' },
+  { day:  6, weekday:'Sex', time:'19h', quote:'Digital não é vitrine. É máquina de aquisição de clientes.', cat:'Educação' },
+  { day:  7, weekday:'Sáb', time:'10h', quote:'O mercado não te paga pelo esforço. Te paga pelo resultado.', cat:'Posicionamento' },
+  { day:  8, weekday:'Dom', time:'10h', quote:'Sem nicho claro, você vai competir por preço. Sempre.', cat:'Posicionamento' },
+  { day:  9, weekday:'Seg', time:'19h', quote:'Método é o que transforma talento em resultado previsível.', cat:'Processo' },
+  { day: 10, weekday:'Ter', time:'10h', quote:'Tráfego pago sem estratégia é só queimar dinheiro.', cat:'Educação' },
+  { day: 11, weekday:'Qua', time:'19h', quote:'Crescimento não é acaso. É processo estruturado.', cat:'Processo' },
+  { day: 12, weekday:'Qui', time:'10h', quote:'O melhor conteúdo não é o mais bonito. É o mais verdadeiro.', cat:'Autoridade' },
+  { day: 13, weekday:'Sex', time:'19h', quote:'Diagnostique antes de criar. Estrategize antes de postar.', cat:'Processo' },
+  { day: 14, weekday:'Sáb', time:'10h', quote:'Autoridade não se pede. Se constrói — resultado a resultado.', cat:'Posicionamento' },
+  { day: 15, weekday:'Dom', time:'10h', quote:'Especialista cobra mais. Generalista compete por preço. Escolha um lado.', cat:'Posicionamento' },
+  { day: 16, weekday:'Seg', time:'19h', quote:'Nicho não te limita. Te posiciona onde você pode ser o melhor.', cat:'Autoridade' },
+  { day: 17, weekday:'Ter', time:'10h', quote:'Retenção é o novo alcance. Qualidade é o novo volume.', cat:'Educação' },
+  { day: 18, weekday:'Qua', time:'19h', quote:'Visibilidade sem conversão é vaidade. Estratégia gera resultado.', cat:'Posicionamento' },
+  { day: 19, weekday:'Qui', time:'10h', quote:'O cliente ideal já existe. Você precisa aparecer na frente dele.', cat:'Tráfego' },
+  { day: 20, weekday:'Sex', time:'10h', quote:'Mais posts não é a resposta. Mais estratégia é.', cat:'Posicionamento' },
+  { day: 21, weekday:'Sáb', time:'10h', quote:'Marca forte não é a mais bonita. É a mais clara.', cat:'Autoridade' },
+  { day: 22, weekday:'Dom', time:'10h', quote:'Cada post é uma chance de gerar confiança — ou perder atenção.', cat:'Autoridade' },
+  { day: 23, weekday:'Seg', time:'19h', quote:'Prospecção ativa + conteúdo estratégico = crescimento constante.', cat:'Processo' },
+  { day: 24, weekday:'Ter', time:'10h', quote:'Sem diagnóstico, qualquer estratégia é chute no escuro.', cat:'Processo' },
+  { day: 25, weekday:'Qua', time:'19h', quote:'O conteúdo que gera salvamento é o que gera resultado.', cat:'Educação' },
+  { day: 26, weekday:'Qui', time:'10h', quote:'Crescer no digital não é questão de sorte. É questão de método.', cat:'Processo' },
+  { day: 27, weekday:'Sex', time:'19h', quote:'Posicionamento correto elimina a guerra de preço.', cat:'Posicionamento' },
+  { day: 28, weekday:'Sáb', time:'10h', quote:'O maior erro é esperar o momento certo. O momento certo é agora.', cat:'Posicionamento' },
+  { day: 29, weekday:'Dom', time:'10h', quote:'Um mês de estratégia vale mais do que um ano de improviso.', cat:'Autoridade' },
+  { day: 30, weekday:'Seg', time:'19h', quote:'Encerra junho. Começa o crescimento.', cat:'Posicionamento' },
+];
+
 const DAYS_SHORT_PT = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 const MONTHS_PT = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
@@ -4183,6 +4218,22 @@ function App() {
           await storage.set(K.estaticos(dirId), items);
         }
         await storage.set('app:seed:estaticos:v1', 'true');
+      }
+
+      // Seed roteiros B.BOTH a partir do cronograma junho 2026
+      const bbothSeedDone = await storage.get('app:seed:bboth:roteiros:v1');
+      if (!bbothSeedDone) {
+        const roteiros = BBOTH_ROTEIROS_SEED.map(r => ({
+          id: uid(),
+          title: `"${r.quote}"`,
+          description: `${r.cat} · ${r.time} · ${r.weekday}, ${String(r.day).padStart(2,'0')}/06`,
+          status: 'para-gravar',
+          pdfKey: null,
+          pdfFilename: null,
+          createdAt: new Date(2026, 5, r.day, 9, 0, 0).getTime(),
+        }));
+        await storage.set(K.roteiros('bboth'), roteiros);
+        await storage.set('app:seed:bboth:roteiros:v1', 'true');
       }
 
       setHydrated(true);
