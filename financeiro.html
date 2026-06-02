@@ -1,0 +1,1221 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>B.BOTH — Financeiro</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg"/>
+  <style>
+    @media print {
+      .no-print { display: none !important; }
+      body { background:#fff !important; color:#111 !important; }
+      @page { size: A4; margin: 15mm 18mm; }
+    }
+  </style>
+</head>
+<body style="margin:0;padding:0;">
+  <div id="root"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script>
+    const SUPABASE_URL      = 'https://rgfinndbwukcbwvgqdaa.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_CcPSf-1MHh6WVD8J723STg_yO2QXcea';
+    window.supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  </script>
+
+  <script src="vendor/react.min.js"></script>
+  <script src="vendor/react-dom.min.js"></script>
+  <script src="vendor/babel.min.js"></script>
+  <script src="vendor/lucide.min.js"></script>
+
+  <script>
+  function makeIcon(n){return function(p){const e=window.lucide[n];if(!e)return null;const{size=24,color='currentColor',strokeWidth=2,style,className,...r}=p||{};return React.createElement('svg',{xmlns:'http://www.w3.org/2000/svg',width:size,height:size,viewBox:'0 0 24 24',fill:'none',stroke:color,strokeWidth,strokeLinecap:'round',strokeLinejoin:'round',style,className,...r},...(e[2]||[]).map((c,i)=>React.createElement(c[0],{key:i,...c[1]})));}}
+  const X            = makeIcon('X');
+  const Plus         = makeIcon('Plus');
+  const ChevronLeft  = makeIcon('ChevronLeft');
+  const ChevronRight = makeIcon('ChevronRight');
+  const ArrowLeft    = makeIcon('ArrowLeft');
+  const Edit3        = makeIcon('Edit3');
+  const Trash2       = makeIcon('Trash2');
+  const Sun          = makeIcon('Sun');
+  const Moon         = makeIcon('Moon');
+  const LogOut       = makeIcon('LogOut');
+  const Eye          = makeIcon('Eye');
+  const EyeOff       = makeIcon('EyeOff');
+  const AlertCircle  = makeIcon('AlertCircle');
+  const CheckCircle2 = makeIcon('CheckCircle2');
+  const Circle       = makeIcon('Circle');
+  const TrendingUp   = makeIcon('TrendingUp');
+  const TrendingDown = makeIcon('TrendingDown');
+  const DollarSign   = makeIcon('DollarSign');
+  const BarChart2    = makeIcon('BarChart2');
+  const Layers       = makeIcon('Layers');
+  const Activity     = makeIcon('Activity');
+  const Building2    = makeIcon('Building2');
+  const Download     = makeIcon('Download');
+  const FileText     = makeIcon('FileText');
+  const Wallet       = makeIcon('Wallet');
+  const Receipt      = makeIcon('Receipt');
+  </script>
+
+  <script type="text/babel">
+  const { useState, useEffect, useRef, useMemo, useCallback } = React;
+
+  /* ============================================================
+     DESIGN TOKENS
+  ============================================================ */
+  const DARK = {
+    inkDeep:'#050608', inkBase:'#0d1117', inkRaised:'#141922', inkSoft:'#1a2130',
+    inkBorder:'#1e2940', inkBorderSoft:'#1a2436', inkHover:'#1e2d44',
+    mist:'#e6eaf3', mistDim:'#8896a8', mistMuted:'#4a5568',
+    brandBlue:'#0166fc', brandCyan:'#1de4f0', brandMid:'#009bed',
+    brandSoft:'rgba(1,102,252,0.12)', cyanSoft:'rgba(29,228,240,0.10)',
+    danger:'#f56565', warn:'#f5b342', success:'#1de4f0',
+  };
+  const LIGHT = {
+    inkDeep:'#f0f3f9', inkBase:'#ffffff', inkRaised:'#f7f9fc', inkSoft:'#edf0f7',
+    inkBorder:'#cdd3e0', inkBorderSoft:'#dfe4ef', inkHover:'#e4e9f3',
+    mist:'#0d1117', mistDim:'#4a5568', mistMuted:'#8896a8',
+    brandBlue:'#0166fc', brandCyan:'#0088a8', brandMid:'#009bed',
+    brandSoft:'rgba(1,102,252,0.10)', cyanSoft:'rgba(0,136,168,0.10)',
+    danger:'#dc2626', warn:'#b45309', success:'#047857',
+  };
+
+  /* ============================================================
+     STORAGE (Supabase kv_store)
+  ============================================================ */
+  const storage = {
+    async get(k) {
+      const sc = window.supabaseClient;
+      if (!sc) return localStorage.getItem(k);
+      const { data } = await sc.from('kv_store').select('value').eq('key', k).maybeSingle();
+      return data ? data.value : null;
+    },
+    async set(k, v) {
+      const val = typeof v === 'string' ? v : JSON.stringify(v);
+      const sc = window.supabaseClient;
+      if (!sc) { localStorage.setItem(k, val); return; }
+      await sc.from('kv_store').upsert({ key: k, value: val, updated_at: new Date().toISOString() });
+    },
+    async delete(k) {
+      const sc = window.supabaseClient;
+      if (!sc) { localStorage.removeItem(k); return; }
+      await sc.from('kv_store').delete().eq('key', k);
+    },
+    async getJSON(k, def) {
+      try { const v = await storage.get(k); return v ? JSON.parse(v) : def; }
+      catch { return def; }
+    },
+  };
+
+  const K = {
+    entry:   (y, m) => `financeiro:entry:${y}:${m}`,
+    clients: 'financeiro:clients:v1',
+    theme:   'bboth:theme',
+  };
+
+  /* ============================================================
+     CONSTANTS
+  ============================================================ */
+  const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho',
+                 'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const MESES_ABREV = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
+  const TIPOS_RECEITA = [
+    { id:'retainer', label:'Retainer Mensal' },
+    { id:'projeto',  label:'Projeto' },
+    { id:'avulso',   label:'Serviço Avulso' },
+    { id:'bonus',    label:'Bônus / Extra' },
+  ];
+  const STATUS_RECEITA = [
+    { id:'recebido',     label:'Recebido',     color:'#1de4f0', bg:'rgba(29,228,240,0.12)' },
+    { id:'a-receber',    label:'A receber',    color:'#f5b342', bg:'rgba(245,179,66,0.12)' },
+    { id:'inadimplente', label:'Inadimplente', color:'#f56565', bg:'rgba(245,101,101,0.12)' },
+  ];
+  const CATEGORIAS_DESPESA = [
+    { id:'salarios',      label:'Salários / Equipe',   color:'#7c3aed' },
+    { id:'ferramentas',   label:'Ferramentas / SaaS',  color:'#0166fc' },
+    { id:'trafego',       label:'Tráfego Pago',         color:'#ea580c' },
+    { id:'infraestrutura',label:'Infraestrutura',       color:'#0891b2' },
+    { id:'impostos',      label:'Impostos / Taxas',     color:'#f56565' },
+    { id:'marketing',     label:'Marketing / Eventos',  color:'#db2777' },
+    { id:'outros',        label:'Outros',               color:'#8896a8' },
+  ];
+  const STATUS_DESPESA = [
+    { id:'pago',     label:'Pago',     color:'#1de4f0', bg:'rgba(29,228,240,0.12)' },
+    { id:'a-pagar',  label:'A pagar',  color:'#f5b342', bg:'rgba(245,179,66,0.12)' },
+  ];
+  const CLIENT_COLORS = ['#0166fc','#7c3aed','#059669','#ea580c','#db2777','#d97706','#0891b2','#be123c'];
+
+  /* ============================================================
+     UTILITIES
+  ============================================================ */
+  function uid() { return Math.random().toString(36).slice(2) + Date.now().toString(36); }
+  function num(v) { return parseFloat(String(v||0).replace(',','.')) || 0; }
+  function fmtBRL(v) { return `R$ ${num(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}`; }
+  function fmtPct(v, d=1) { return `${num(v).toFixed(d)}%`; }
+  function clientColor(clients, id) {
+    const idx = clients.findIndex(c => c.id === id);
+    return CLIENT_COLORS[idx >= 0 ? idx % CLIENT_COLORS.length : 0];
+  }
+
+  function emptyEntry() { return { receitas: [], despesas: [] }; }
+
+  function calcKPIs(entry) {
+    const receitas = entry?.receitas || [];
+    const despesas = entry?.despesas || [];
+    const receitaBruta    = receitas.reduce((s, r) => s + num(r.valor), 0);
+    const receitaRecebida = receitas.filter(r => r.status === 'recebido').reduce((s, r) => s + num(r.valor), 0);
+    const despesaTotal    = despesas.reduce((s, d) => s + num(d.valor), 0);
+    const despesaPaga     = despesas.filter(d => d.status === 'pago').reduce((s, d) => s + num(d.valor), 0);
+    const resultado       = receitaBruta - despesaTotal;
+    const margem          = receitaBruta > 0 ? resultado / receitaBruta * 100 : 0;
+    return { receitaBruta, receitaRecebida, despesaTotal, despesaPaga, resultado, margem };
+  }
+
+  /* ============================================================
+     HOOKS
+  ============================================================ */
+  function useToast() {
+    const [toasts, setToasts] = useState([]);
+    function showToast(type, msg) {
+      const id = uid();
+      setToasts(t => [...t, { id, type, msg }]);
+      setTimeout(() => setToasts(t => t.filter(x => x.id !== id)), 2800);
+    }
+    return { toasts, showToast };
+  }
+
+  function useFontInjection() {
+    useEffect(() => {
+      if (document.getElementById('fin-fonts')) return;
+      const l = document.createElement('link');
+      l.id = 'fin-fonts';
+      l.rel = 'stylesheet';
+      l.href = 'https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;900&display=swap';
+      document.head.appendChild(l);
+    }, []);
+  }
+
+  /* ============================================================
+     GLOBAL STYLES
+  ============================================================ */
+  function GlobalStyles({ theme }) {
+    const C = theme === 'light' ? LIGHT : DARK;
+    return (
+      <style>{`
+        *, *::before, *::after { box-sizing: border-box; }
+        body { margin:0; background:${C.inkDeep}; color:${C.mist}; font-family:'Geist',system-ui,sans-serif; }
+        :root {
+          --ink-deep:${C.inkDeep}; --ink-base:${C.inkBase}; --ink-raised:${C.inkRaised}; --ink-soft:${C.inkSoft};
+          --ink-border:${C.inkBorder}; --ink-border-soft:${C.inkBorderSoft}; --ink-hover:${C.inkHover};
+          --mist:${C.mist}; --mist-dim:${C.mistDim}; --mist-muted:${C.mistMuted};
+          --brand-blue:${C.brandBlue}; --brand-cyan:${C.brandCyan}; --brand-soft:${C.brandSoft};
+          --cyan-soft:${C.cyanSoft}; --danger:${C.danger}; --warn:${C.warn};
+        }
+        input, textarea, select { background:var(--ink-raised); border:1px solid var(--ink-border); border-radius:8px; padding:9px 12px; color:var(--mist); font-size:13.5px; outline:none; font-family:inherit; width:100%; transition:border-color .15s; }
+        input:focus, textarea:focus { border-color:var(--brand-blue); box-shadow:0 0 0 3px rgba(1,102,252,.12); }
+        input::placeholder, textarea::placeholder { color:var(--mist-muted); }
+        label.label { display:block; font-size:11.5px; font-weight:600; color:var(--mist-dim); letter-spacing:.05em; text-transform:uppercase; margin-bottom:6px; }
+        .btn { display:inline-flex; align-items:center; gap:6px; padding:7px 13px; border-radius:8px; border:1px solid var(--ink-border); background:var(--ink-raised); color:var(--mist-dim); font-size:13px; font-weight:500; cursor:pointer; font-family:inherit; transition:all .15s; white-space:nowrap; }
+        .btn:hover { background:var(--ink-hover); color:var(--mist); }
+        .btn-primary { background:var(--brand-blue); border-color:var(--brand-blue); color:#fff; }
+        .btn-primary:hover { opacity:.88; background:var(--brand-blue); }
+        .btn-danger:hover { background:rgba(245,101,101,.08); border-color:rgba(245,101,101,.2); color:var(--danger); }
+        .btn-icon { display:inline-flex; align-items:center; justify-content:center; padding:7px; border-radius:7px; border:1px solid transparent; background:transparent; color:var(--mist-dim); cursor:pointer; transition:all .15s; }
+        .btn-icon:hover { background:var(--ink-soft); color:var(--mist); }
+        .card { background:var(--ink-base); border:1px solid var(--ink-border-soft); border-radius:12px; transition:border-color .15s; }
+        .card:hover { border-color:var(--ink-border); }
+        .item-card { background:var(--ink-raised); border:1px solid var(--ink-border-soft); border-radius:10px; padding:12px 14px; }
+        .modal-backdrop { position:fixed; inset:0; background:rgba(0,0,0,.6); backdrop-filter:blur(4px); z-index:1000; display:flex; align-items:center; justify-content:center; padding:20px; }
+        .modal { background:var(--ink-base); border:1px solid var(--ink-border); border-radius:16px; width:min(520px,100%); max-height:90vh; overflow-y:auto; }
+        .modal-form { display:flex; flex-direction:column; gap:14px; padding:20px; }
+        .modal-footer { display:flex; gap:8px; justify-content:flex-end; padding:16px 20px; border-top:1px solid var(--ink-border-soft); }
+        .tab-content { padding:20px 24px; max-width:960px; margin:0 auto; }
+        .filter-bar { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:18px; flex-wrap:wrap; }
+        .empty { text-align:center; padding:56px 20px; color:var(--mist-dim); }
+        .kpi-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:12px; margin-bottom:20px; }
+        .kpi-card { background:var(--ink-raised); border:1px solid var(--ink-border-soft); border-radius:12px; padding:16px 18px; }
+        .kpi-label { font-size:11px; font-weight:600; color:var(--mist-muted); letter-spacing:.08em; text-transform:uppercase; margin-bottom:6px; }
+        .kpi-value { font-size:22px; font-weight:700; letter-spacing:-.02em; }
+        .badge { display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:600; padding:2px 8px; border-radius:999px; }
+        .section-title { font-size:12px; font-weight:700; color:var(--mist-dim); letter-spacing:.08em; text-transform:uppercase; margin-bottom:12px; }
+        .tab-strip { display:flex; gap:2px; border-bottom:1px solid var(--ink-border-soft); padding:0 24px; }
+        .fin-tab { padding:10px 14px; border:none; background:transparent; color:var(--mist-dim); font-size:13px; font-weight:500; cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px; font-family:inherit; transition:all .15s; display:inline-flex; align-items:center; gap:7px; }
+        .fin-tab:hover { color:var(--mist); }
+        .fin-tab.active { color:var(--brand-cyan); border-bottom-color:var(--brand-cyan); }
+        @keyframes fadeIn { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:none} }
+        .fade-in { animation:fadeIn .18s ease; }
+        ::-webkit-scrollbar { width:5px; height:5px; }
+        ::-webkit-scrollbar-track { background:transparent; }
+        ::-webkit-scrollbar-thumb { background:var(--ink-border); border-radius:5px; }
+      `}</style>
+    );
+  }
+
+  /* ============================================================
+     B.BOTH LOGO
+  ============================================================ */
+  function BBothLogo({ size = 22 }) {
+    return (
+      <svg width={size * 3.6} height={size} viewBox="0 0 90 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="fin-logo-grad" x1="0" y1="0" x2="90" y2="0" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stopColor="#0166fc"/>
+            <stop offset="50%" stopColor="#009bed"/>
+            <stop offset="100%" stopColor="#1de4f0"/>
+          </linearGradient>
+        </defs>
+        <text x="0" y="18" fontFamily="'Geist','Inter',system-ui,sans-serif" fontWeight="900" fontSize="20" fill="url(#fin-logo-grad)" letterSpacing="-0.5">B.BOTH</text>
+      </svg>
+    );
+  }
+
+  /* ============================================================
+     TOAST
+  ============================================================ */
+  function Toast({ toasts }) {
+    return (
+      <div className="no-print" style={{position:'fixed',bottom:24,right:24,zIndex:9999,display:'flex',flexDirection:'column',gap:8}}>
+        {toasts.map(t => (
+          <div key={t.id} style={{
+            padding:'11px 18px', borderRadius:10, fontSize:13, fontWeight:500,
+            background: t.type==='error' ? '#f56565' : t.type==='warn' ? '#f5b342' : '#1de4f0',
+            color: t.type==='success' ? '#050608' : '#fff',
+            boxShadow:'0 4px 24px rgba(0,0,0,.35)', animation:'fadeIn .18s ease',
+          }}>{t.msg}</div>
+        ))}
+      </div>
+    );
+  }
+
+  /* ============================================================
+     LOGIN SCREEN
+  ============================================================ */
+  function LoginScreen({ onLogin }) {
+    const [email, setEmail]       = useState('');
+    const [password, setPassword] = useState('');
+    const [showPwd, setShowPwd]   = useState(false);
+    const [loading, setLoading]   = useState(false);
+    const [error, setError]       = useState('');
+
+    async function handleSubmit(e) {
+      e.preventDefault();
+      setLoading(true); setError('');
+      const sc = window.supabaseClient;
+      if (!sc) { setError('Supabase não configurado.'); setLoading(false); return; }
+      const { data, error: authErr } = await sc.auth.signInWithPassword({ email, password });
+      if (authErr) { setError('Email ou senha inválidos.'); setLoading(false); return; }
+      const { data: profile } = await sc.from('profiles').select('name, role').eq('id', data.user.id).maybeSingle();
+      onLogin({ id: data.user.id, email: data.user.email, name: profile?.name || data.user.email.split('@')[0], role: profile?.role || '' });
+      setLoading(false);
+    }
+
+    return (
+      <div style={{minHeight:'100vh',background:'#050608',display:'flex',alignItems:'center',justifyContent:'center',position:'relative',overflow:'hidden'}}>
+        <style>{`.ll-input{width:100%;background:rgba(255,255,255,.04);border:1px solid #1e2940;border-radius:10px;padding:12px 14px;color:#e6eaf3;font-size:14px;outline:none;box-sizing:border-box;font-family:inherit;}.ll-input:focus{border-color:#0166fc;box-shadow:0 0 0 3px rgba(1,102,252,.15);}.ll-input::placeholder{color:#4a5568;}.ll-btn{width:100%;padding:13px;background:linear-gradient(90deg,#0166fc 0%,#009bed 50%,#1de4f0 100%);border:none;border-radius:12px;color:#fff;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;}.ll-btn:disabled{opacity:.45;cursor:not-allowed;}`}</style>
+        <div style={{position:'absolute',top:'-160px',left:'-160px',width:620,height:620,borderRadius:'50%',background:'radial-gradient(circle,rgba(1,102,252,.13) 0%,transparent 65%)',pointerEvents:'none'}}/>
+        <div style={{position:'absolute',bottom:'-140px',right:'-120px',width:520,height:520,borderRadius:'50%',background:'radial-gradient(circle,rgba(29,228,240,.09) 0%,transparent 65%)',pointerEvents:'none'}}/>
+        <div style={{width:'min(420px,calc(100vw - 32px))',padding:'clamp(28px,5vw,44px) clamp(20px,5vw,40px) 32px',background:'rgba(11,13,17,.90)',backdropFilter:'blur(24px)',borderRadius:22,border:'1px solid rgba(34,39,50,.9)',boxShadow:'0 40px 100px rgba(0,0,0,.7)',position:'relative',zIndex:1}}>
+          <div style={{textAlign:'center',marginBottom:36}}>
+            <BBothLogo size={26}/>
+            <div style={{marginTop:14,display:'inline-flex',alignItems:'center',gap:6,background:'rgba(1,102,252,.1)',border:'1px solid rgba(1,102,252,.22)',borderRadius:20,padding:'4px 12px'}}>
+              <div style={{width:5,height:5,borderRadius:'50%',background:'#1de4f0',boxShadow:'0 0 7px #1de4f0'}}/>
+              <span style={{fontSize:10.5,color:'#1de4f0',letterSpacing:'.14em',textTransform:'uppercase',fontWeight:700}}>Financeiro</span>
+            </div>
+            <div style={{marginTop:20,fontSize:22,fontWeight:700,color:'#e6eaf3',letterSpacing:'-.025em'}}>Bem-vindo de volta</div>
+            <div style={{marginTop:7,fontSize:14,color:'#8896a8'}}>Entre com sua conta B.BOTH</div>
+          </div>
+          <form onSubmit={handleSubmit}>
+            {error && <div style={{display:'flex',alignItems:'center',gap:8,background:'rgba(239,100,100,.08)',border:'1px solid rgba(239,100,100,.2)',borderRadius:10,padding:'10px 14px',fontSize:13,color:'#ef9494',marginBottom:18}}><AlertCircle size={14} color="#ef9494"/> {error}</div>}
+            <div style={{display:'flex',flexDirection:'column',gap:14}}>
+              <div>
+                <label style={{display:'block',fontSize:12,fontWeight:600,color:'#8896a8',letterSpacing:'.05em',textTransform:'uppercase',marginBottom:7}}>Email</label>
+                <input className="ll-input" type="email" value={email} required autoFocus onChange={e=>setEmail(e.target.value)} placeholder="seu@email.com"/>
+              </div>
+              <div>
+                <label style={{display:'block',fontSize:12,fontWeight:600,color:'#8896a8',letterSpacing:'.05em',textTransform:'uppercase',marginBottom:7}}>Senha</label>
+                <div style={{position:'relative'}}>
+                  <input className="ll-input" type={showPwd?'text':'password'} value={password} required onChange={e=>setPassword(e.target.value)} placeholder="••••••••" style={{paddingRight:42}}/>
+                  <button type="button" onClick={()=>setShowPwd(v=>!v)} style={{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',cursor:'pointer',padding:2,color:'#4a5568',display:'flex',alignItems:'center'}}>
+                    {showPwd ? <EyeOff size={16}/> : <Eye size={16}/>}
+                  </button>
+                </div>
+              </div>
+            </div>
+            <button className="ll-btn" type="submit" disabled={loading} style={{marginTop:24}}>{loading ? 'Entrando...' : 'Entrar →'}</button>
+          </form>
+          <div style={{marginTop:28,textAlign:'center',fontSize:11,color:'#4a5568',letterSpacing:'.12em',textTransform:'uppercase'}}>Be bold, be better</div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ============================================================
+     ACCESS DENIED
+  ============================================================ */
+  function AccessDenied({ user, onLogout }) {
+    return (
+      <div style={{minHeight:'100vh',background:'#050608',display:'flex',alignItems:'center',justifyContent:'center'}}>
+        <div style={{textAlign:'center',maxWidth:380,padding:'0 24px'}}>
+          <BBothLogo size={26}/>
+          <div style={{marginTop:28,fontSize:42}}>🔒</div>
+          <div style={{marginTop:14,fontSize:20,fontWeight:700,color:'#e6eaf3'}}>Acesso restrito</div>
+          <div style={{marginTop:10,fontSize:14,color:'#8896a8',lineHeight:1.6}}>
+            O módulo Financeiro é exclusivo para usuários com perfil <strong style={{color:'#1de4f0'}}>Geral</strong>.<br/>
+            Sua conta ({user.name}) não tem permissão.
+          </div>
+          <button onClick={onLogout} style={{marginTop:24,display:'inline-flex',alignItems:'center',gap:7,padding:'10px 20px',borderRadius:10,border:'1px solid #1e2940',background:'#141922',color:'#8896a8',fontSize:13,cursor:'pointer',fontFamily:'inherit'}}>
+            <LogOut size={15}/> Sair da conta
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  /* ============================================================
+     HEADER
+  ============================================================ */
+  function FinHeader({ year, month, onPrev, onNext, onToday, theme, onToggleTheme, user, onLogout, kpis }) {
+    const resultado = kpis.resultado;
+    return (
+      <header className="no-print" style={{
+        position:'sticky', top:0, zIndex:200,
+        background: theme==='light' ? 'rgba(255,255,255,.92)' : 'rgba(5,6,8,.9)',
+        backdropFilter:'blur(16px)', borderBottom:'1px solid var(--ink-border)',
+      }}>
+        {/* Top bar */}
+        <div style={{maxWidth:1100,margin:'0 auto',padding:'0 24px',display:'flex',alignItems:'center',gap:12,height:56}}>
+          {/* Back */}
+          <a href="index.html" style={{display:'flex',alignItems:'center',gap:5,color:'var(--mist-dim)',textDecoration:'none',fontSize:12,fontWeight:500,flexShrink:0,padding:'5px 9px',borderRadius:8,border:'1px solid var(--ink-border)',transition:'all .15s'}}
+            onMouseEnter={e=>e.currentTarget.style.color='var(--mist)'} onMouseLeave={e=>e.currentTarget.style.color='var(--mist-dim)'}>
+            <ArrowLeft size={13}/> Sistema
+          </a>
+          {/* Logo + badge */}
+          <div style={{display:'flex',alignItems:'center',gap:8,flexShrink:0}}>
+            <BBothLogo size={16}/>
+            <span style={{fontSize:9.5,fontWeight:700,color:'var(--brand-cyan)',background:'var(--brand-soft)',padding:'2px 7px',borderRadius:999,textTransform:'uppercase',letterSpacing:'.08em'}}>Financeiro</span>
+          </div>
+          {/* Month nav */}
+          <div style={{display:'flex',alignItems:'center',gap:6,flex:1,justifyContent:'center'}}>
+            <button className="btn-icon" onClick={onPrev}><ChevronLeft size={16}/></button>
+            <div style={{fontSize:15,fontWeight:700,color:'var(--mist)',letterSpacing:'-.01em',minWidth:160,textAlign:'center'}}>
+              {MESES[month]} <span style={{color:'var(--mist-muted)',fontWeight:400}}>{year}</span>
+            </div>
+            <button className="btn-icon" onClick={onNext}><ChevronRight size={16}/></button>
+            <button className="btn btn-ghost" onClick={onToday} style={{padding:'4px 10px',fontSize:12}}>Hoje</button>
+          </div>
+          {/* Resultado rápido */}
+          {(kpis.receitaBruta > 0 || kpis.despesaTotal > 0) && (
+            <div style={{display:'flex',alignItems:'center',gap:5,fontSize:13,fontWeight:600,
+              color: resultado >= 0 ? 'var(--brand-cyan)' : 'var(--danger)',flexShrink:0}}>
+              {resultado >= 0 ? <TrendingUp size={14}/> : <TrendingDown size={14}/>}
+              {fmtBRL(Math.abs(resultado))}
+            </div>
+          )}
+          <button className="btn-icon no-print" onClick={onToggleTheme} title="Tema"><Sun size={16}/></button>
+          {user && <button className="btn-icon no-print" onClick={onLogout} title={`Sair (${user.name})`}><LogOut size={16}/></button>}
+        </div>
+      </header>
+    );
+  }
+
+  /* ============================================================
+     KPI CARDS
+  ============================================================ */
+  function KpiCards({ kpis }) {
+    const cards = [
+      { label:'Receita Bruta',    value:fmtBRL(kpis.receitaBruta),    color:'var(--brand-cyan)',  icon:<DollarSign size={16}/> },
+      { label:'Despesas',         value:fmtBRL(kpis.despesaTotal),     color:'var(--danger)',      icon:<Receipt size={16}/> },
+      { label:'Resultado',        value:fmtBRL(kpis.resultado),        color: kpis.resultado>=0 ? 'var(--brand-cyan)' : 'var(--danger)', icon: kpis.resultado>=0 ? <TrendingUp size={16}/> : <TrendingDown size={16}/> },
+      { label:'Margem',           value:fmtPct(kpis.margem),           color: kpis.margem>=20 ? 'var(--brand-cyan)' : kpis.margem>=0 ? 'var(--warn)' : 'var(--danger)', icon:<BarChart2 size={16}/> },
+    ];
+    return (
+      <div className="kpi-grid">
+        {cards.map(c => (
+          <div key={c.label} className="kpi-card">
+            <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:8}}>
+              <span style={{color:c.color,opacity:.7}}>{c.icon}</span>
+              <div className="kpi-label">{c.label}</div>
+            </div>
+            <div className="kpi-value" style={{color:c.color}}>{c.value}</div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  /* ============================================================
+     RECEITA MODAL
+  ============================================================ */
+  function ReceitaModal({ item, clients, onClose, onSave }) {
+    const [clientId, setClientId]   = useState(item?.clientId || (clients[0]?.id || ''));
+    const [tipo, setTipo]           = useState(item?.tipo || 'retainer');
+    const [descricao, setDescricao] = useState(item?.descricao || '');
+    const [valor, setValor]         = useState(item?.valor || '');
+    const [status, setStatus]       = useState(item?.status || 'a-receber');
+    const [vencimento, setVencimento] = useState(item?.vencimento || '');
+
+    function handleSubmit(e) {
+      e.preventDefault();
+      if (!clientId) return;
+      const client = clients.find(c => c.id === clientId);
+      onSave({
+        clientId, clientName: client?.nome || clientId,
+        tipo, descricao: descricao.trim(), valor: num(valor),
+        status, vencimento: vencimento || null,
+      });
+    }
+
+    return (
+      <div className="modal-backdrop" onClick={onClose}>
+        <div className="modal" onClick={e => e.stopPropagation()}>
+          <div style={{padding:'16px 20px',borderBottom:'1px solid var(--ink-border-soft)',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+            <h3 style={{margin:0,fontSize:15,fontWeight:600}}>{item ? 'Editar Receita' : 'Nova Receita'}</h3>
+            <button className="btn-icon" onClick={onClose}><X size={18}/></button>
+          </div>
+          <form onSubmit={handleSubmit}>
+            <div className="modal-form">
+              <div>
+                <label className="label">Cliente</label>
+                <select value={clientId} onChange={e => setClientId(e.target.value)} required>
+                  <option value="">Selecionar cliente…</option>
+                  {clients.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
+                </select>
+              </div>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+                <div>
+                  <label className="label">Tipo</label>
+                  <select value={tipo} onChange={e => setTipo(e.target.value)}>
+                    {TIPOS_RECEITA.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="label">Status</label>
+                  <select value={status} onChange={e => setStatus(e.target.value)}>
+                    {STATUS_RECEITA.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="label">Descrição (opcional)</label>
+                <input type="text" value={descricao} onChange={e => setDescricao(e.target.value)} placeholder="Ex: Gestão de redes sociais"/>
+              </div>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+                <div>
+                  <label className="label">Valor (R$)</label>
+                  <input type="number" step="0.01" value={valor} onChange={e => setValor(e.target.value)} placeholder="0,00" required/>
+                </div>
+                <div>
+                  <label className="label">Vencimento</label>
+                  <input type="date" value={vencimento} onChange={e => setVencimento(e.target.value)}/>
+                </div>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button type="button" className="btn" onClick={onClose}>Cancelar</button>
+              <button type="submit" className="btn btn-primary">Salvar</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  /* ============================================================
+     RECEITAS TAB
+  ============================================================ */
+  function ReceitasTab({ entry, clients, onSaveReceita, onDeleteReceita, canEdit }) {
+    const [modalOpen, setModalOpen] = useState(false);
+    const [editing, setEditing]     = useState(null);
+    const [filter, setFilter]       = useState('all');
+
+    const receitas = entry?.receitas || [];
+    const filtered = receitas.filter(r => filter === 'all' || r.status === filter);
+
+    const totalFiltrado = filtered.reduce((s, r) => s + num(r.valor), 0);
+
+    return (
+      <div className="tab-content fade-in">
+        <KpiCards kpis={calcKPIs(entry)}/>
+        <div className="filter-bar">
+          <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+            {[
+              { id:'all',         label:'Todos',        count: receitas.length },
+              { id:'recebido',    label:'Recebido',     count: receitas.filter(r=>r.status==='recebido').length },
+              { id:'a-receber',   label:'A receber',    count: receitas.filter(r=>r.status==='a-receber').length },
+              { id:'inadimplente',label:'Inadimplente', count: receitas.filter(r=>r.status==='inadimplente').length },
+            ].map(f => (
+              <button key={f.id} className="btn" onClick={() => setFilter(f.id)} style={{
+                background: filter===f.id ? 'var(--ink-raised)' : 'transparent',
+                borderColor: filter===f.id ? 'var(--ink-border)' : 'transparent',
+                color: filter===f.id ? 'var(--mist)' : 'var(--mist-dim)',
+              }}>
+                {f.label}<span style={{fontSize:11,color:'var(--mist-muted)',marginLeft:4}}>{f.count}</span>
+              </button>
+            ))}
+          </div>
+          {canEdit && (
+            <button className="btn btn-primary" onClick={() => { setEditing(null); setModalOpen(true); }}>
+              <Plus size={15}/> Nova receita
+            </button>
+          )}
+        </div>
+
+        {filtered.length === 0 ? (
+          <div className="empty">
+            <DollarSign size={28} style={{opacity:.25,margin:'0 auto 10px',display:'block'}}/>
+            <div>Nenhuma receita {filter==='all'?'registrada':'nessa categoria'}</div>
+            {canEdit && filter==='all' && (
+              <button className="btn btn-primary" style={{marginTop:14}} onClick={() => setModalOpen(true)}>
+                <Plus size={14}/> Adicionar receita
+              </button>
+            )}
+          </div>
+        ) : (
+          <>
+            <div style={{display:'flex',flexDirection:'column',gap:8}}>
+              {filtered.map(r => {
+                const st = STATUS_RECEITA.find(s => s.id === r.status) || STATUS_RECEITA[1];
+                const clr = clientColor(clients, r.clientId);
+                const tipo = TIPOS_RECEITA.find(t => t.id === r.tipo);
+                return (
+                  <div key={r.id} className="item-card" style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12}}>
+                    <div style={{display:'flex',alignItems:'center',gap:12,flex:1,minWidth:0}}>
+                      <div style={{width:34,height:34,borderRadius:9,background:`${clr}22`,border:`1.5px solid ${clr}44`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,fontSize:11,fontWeight:700,color:clr}}>
+                        {r.clientName?.slice(0,2).toUpperCase()}
+                      </div>
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontWeight:600,fontSize:13.5,color:'var(--mist)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                          {r.clientName}
+                        </div>
+                        <div style={{fontSize:11.5,color:'var(--mist-muted)',marginTop:2,display:'flex',gap:8,flexWrap:'wrap'}}>
+                          <span>{tipo?.label}</span>
+                          {r.descricao && <span>· {r.descricao}</span>}
+                          {r.vencimento && <span>· venc. {new Date(r.vencimento+'T12:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'short'})}</span>}
+                        </div>
+                      </div>
+                    </div>
+                    <div style={{display:'flex',alignItems:'center',gap:12,flexShrink:0}}>
+                      <div style={{textAlign:'right'}}>
+                        <div style={{fontSize:15,fontWeight:700,color:'var(--mist)'}}>{fmtBRL(r.valor)}</div>
+                        <span style={{fontSize:10.5,fontWeight:700,background:st.bg,color:st.color,padding:'1px 7px',borderRadius:999}}>{st.label}</span>
+                      </div>
+                      {canEdit && (
+                        <div style={{display:'flex',gap:2}}>
+                          <button className="btn-icon" onClick={() => { setEditing(r); setModalOpen(true); }}><Edit3 size={14}/></button>
+                          <button className="btn-icon btn-danger" onClick={() => onDeleteReceita(r.id)}><Trash2 size={14}/></button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            {filtered.length > 1 && (
+              <div style={{marginTop:14,textAlign:'right',fontSize:13,fontWeight:600,color:'var(--mist-dim)'}}>
+                Total filtrado: <span style={{color:'var(--mist)'}}>{fmtBRL(totalFiltrado)}</span>
+              </div>
+            )}
+          </>
+        )}
+
+        {modalOpen && (
+          <ReceitaModal
+            item={editing}
+            clients={clients}
+            onClose={() => { setModalOpen(false); setEditing(null); }}
+            onSave={data => { onSaveReceita(editing, data); setModalOpen(false); setEditing(null); }}
+          />
+        )}
+      </div>
+    );
+  }
+
+  /* ============================================================
+     DESPESA MODAL
+  ============================================================ */
+  function DespesaModal({ item, onClose, onSave }) {
+    const [categoria, setCategoria] = useState(item?.categoria || 'ferramentas');
+    const [descricao, setDescricao] = useState(item?.descricao || '');
+    const [valor, setValor]         = useState(item?.valor || '');
+    const [status, setStatus]       = useState(item?.status || 'a-pagar');
+    const [data, setData]           = useState(item?.data || '');
+
+    function handleSubmit(e) {
+      e.preventDefault();
+      onSave({ categoria, descricao: descricao.trim(), valor: num(valor), status, data: data || null });
+    }
+
+    return (
+      <div className="modal-backdrop" onClick={onClose}>
+        <div className="modal" onClick={e => e.stopPropagation()}>
+          <div style={{padding:'16px 20px',borderBottom:'1px solid var(--ink-border-soft)',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+            <h3 style={{margin:0,fontSize:15,fontWeight:600}}>{item ? 'Editar Despesa' : 'Nova Despesa'}</h3>
+            <button className="btn-icon" onClick={onClose}><X size={18}/></button>
+          </div>
+          <form onSubmit={handleSubmit}>
+            <div className="modal-form">
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+                <div>
+                  <label className="label">Categoria</label>
+                  <select value={categoria} onChange={e => setCategoria(e.target.value)}>
+                    {CATEGORIAS_DESPESA.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="label">Status</label>
+                  <select value={status} onChange={e => setStatus(e.target.value)}>
+                    {STATUS_DESPESA.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="label">Descrição</label>
+                <input type="text" value={descricao} onChange={e => setDescricao(e.target.value)} placeholder="Ex: Adobe Creative Cloud" required/>
+              </div>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+                <div>
+                  <label className="label">Valor (R$)</label>
+                  <input type="number" step="0.01" value={valor} onChange={e => setValor(e.target.value)} placeholder="0,00" required/>
+                </div>
+                <div>
+                  <label className="label">Data</label>
+                  <input type="date" value={data} onChange={e => setData(e.target.value)}/>
+                </div>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button type="button" className="btn" onClick={onClose}>Cancelar</button>
+              <button type="submit" className="btn btn-primary">Salvar</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  /* ============================================================
+     DESPESAS TAB
+  ============================================================ */
+  function DespesasTab({ entry, onSaveDespesa, onDeleteDespesa, canEdit }) {
+    const [modalOpen, setModalOpen] = useState(false);
+    const [editing, setEditing]     = useState(null);
+    const [filter, setFilter]       = useState('all');
+
+    const despesas = entry?.despesas || [];
+    const filtered = despesas.filter(d => filter === 'all' || d.categoria === filter || d.status === filter);
+
+    // Group by categoria
+    const porCategoria = CATEGORIAS_DESPESA.map(cat => ({
+      ...cat,
+      items: despesas.filter(d => d.categoria === cat.id),
+      total: despesas.filter(d => d.categoria === cat.id).reduce((s, d) => s + num(d.valor), 0),
+    })).filter(c => c.items.length > 0);
+
+    return (
+      <div className="tab-content fade-in">
+        <div className="filter-bar">
+          <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+            {[
+              { id:'all',      label:'Todas',    count: despesas.length },
+              { id:'a-pagar',  label:'A pagar',  count: despesas.filter(d=>d.status==='a-pagar').length },
+              { id:'pago',     label:'Pagas',    count: despesas.filter(d=>d.status==='pago').length },
+            ].map(f => (
+              <button key={f.id} className="btn" onClick={() => setFilter(f.id)} style={{
+                background: filter===f.id ? 'var(--ink-raised)' : 'transparent',
+                borderColor: filter===f.id ? 'var(--ink-border)' : 'transparent',
+                color: filter===f.id ? 'var(--mist)' : 'var(--mist-dim)',
+              }}>
+                {f.label}<span style={{fontSize:11,color:'var(--mist-muted)',marginLeft:4}}>{f.count}</span>
+              </button>
+            ))}
+          </div>
+          {canEdit && (
+            <button className="btn btn-primary" onClick={() => { setEditing(null); setModalOpen(true); }}>
+              <Plus size={15}/> Nova despesa
+            </button>
+          )}
+        </div>
+
+        {despesas.length === 0 ? (
+          <div className="empty">
+            <Receipt size={28} style={{opacity:.25,margin:'0 auto 10px',display:'block'}}/>
+            <div>Nenhuma despesa registrada</div>
+            {canEdit && <button className="btn btn-primary" style={{marginTop:14}} onClick={() => setModalOpen(true)}><Plus size={14}/> Adicionar despesa</button>}
+          </div>
+        ) : (
+          <div style={{display:'flex',flexDirection:'column',gap:20}}>
+            {porCategoria.map(cat => {
+              const items = filter === 'all' ? cat.items : cat.items.filter(d => d.status === filter);
+              if (items.length === 0) return null;
+              return (
+                <div key={cat.id}>
+                  <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10}}>
+                    <div style={{width:8,height:8,borderRadius:'50%',background:cat.color,flexShrink:0}}/>
+                    <div className="section-title" style={{margin:0}}>{cat.label}</div>
+                    <div style={{flex:1,height:1,background:'var(--ink-border-soft)'}}/>
+                    <span style={{fontSize:12,fontWeight:600,color:'var(--mist-dim)'}}>{fmtBRL(items.reduce((s,d)=>s+num(d.valor),0))}</span>
+                  </div>
+                  <div style={{display:'flex',flexDirection:'column',gap:7}}>
+                    {items.map(d => {
+                      const st = STATUS_DESPESA.find(s => s.id === d.status) || STATUS_DESPESA[0];
+                      return (
+                        <div key={d.id} className="item-card" style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12}}>
+                          <div style={{flex:1,minWidth:0}}>
+                            <div style={{fontSize:13.5,fontWeight:500,color:'var(--mist)',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{d.descricao}</div>
+                            {d.data && <div style={{fontSize:11.5,color:'var(--mist-muted)',marginTop:2}}>{new Date(d.data+'T12:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'})}</div>}
+                          </div>
+                          <div style={{display:'flex',alignItems:'center',gap:10,flexShrink:0}}>
+                            <div style={{textAlign:'right'}}>
+                              <div style={{fontSize:14,fontWeight:700,color:'var(--mist)'}}>{fmtBRL(d.valor)}</div>
+                              <span style={{fontSize:10.5,fontWeight:700,background:st.bg,color:st.color,padding:'1px 7px',borderRadius:999}}>{st.label}</span>
+                            </div>
+                            {canEdit && (
+                              <div style={{display:'flex',gap:2}}>
+                                <button className="btn-icon" onClick={() => { setEditing(d); setModalOpen(true); }}><Edit3 size={14}/></button>
+                                <button className="btn-icon btn-danger" onClick={() => onDeleteDespesa(d.id)}><Trash2 size={14}/></button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {modalOpen && (
+          <DespesaModal
+            item={editing}
+            onClose={() => { setModalOpen(false); setEditing(null); }}
+            onSave={data => { onSaveDespesa(editing, data); setModalOpen(false); setEditing(null); }}
+          />
+        )}
+      </div>
+    );
+  }
+
+  /* ============================================================
+     DRE TAB
+  ============================================================ */
+  function DRETab({ entry, year, month }) {
+    const receitas = entry?.receitas || [];
+    const despesas = entry?.despesas || [];
+    const kpis     = calcKPIs(entry);
+
+    const receitaPorTipo = TIPOS_RECEITA.map(t => ({
+      ...t,
+      valor: receitas.filter(r => r.tipo === t.id).reduce((s, r) => s + num(r.valor), 0),
+    })).filter(t => t.valor > 0);
+
+    const despPorCat = CATEGORIAS_DESPESA.map(c => ({
+      ...c,
+      valor: despesas.filter(d => d.categoria === c.id).reduce((s, d) => s + num(d.valor), 0),
+    })).filter(c => c.valor > 0);
+
+    const Row = ({ label, value, bold, indent, color, divider }) => (
+      <>
+        {divider && <div style={{height:1,background:'var(--ink-border-soft)',margin:'8px 0'}}/>}
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'7px 0',
+          borderBottom:'1px solid var(--ink-border-soft)'}}>
+          <span style={{fontSize: bold?14:13, fontWeight: bold?700:400, color: color||'var(--mist)', marginLeft: indent?20:0, opacity: bold?1:.85}}>{label}</span>
+          <span style={{fontSize: bold?14:13, fontWeight: bold?700:600, color: color||(value>=0?'var(--mist)':'var(--danger)'), fontVariantNumeric:'tabular-nums'}}>
+            {value !== undefined ? fmtBRL(value) : ''}
+          </span>
+        </div>
+      </>
+    );
+
+    return (
+      <div className="tab-content fade-in">
+        <KpiCards kpis={kpis}/>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:20}}>
+          {/* DRE */}
+          <div className="card" style={{padding:'18px 20px'}}>
+            <div className="section-title">Demonstrativo de Resultado — {MESES[month]}/{year}</div>
+            {receitas.length === 0 && despesas.length === 0 ? (
+              <div style={{color:'var(--mist-muted)',fontSize:13,padding:'20px 0',textAlign:'center'}}>Sem lançamentos neste mês</div>
+            ) : (
+              <>
+                <Row label="RECEITAS" value={kpis.receitaBruta} bold color="var(--brand-cyan)"/>
+                {receitaPorTipo.map(t => <Row key={t.id} label={t.label} value={t.valor} indent/>)}
+                <Row label="DESPESAS" value={kpis.despesaTotal} bold color="var(--danger)" divider/>
+                {despPorCat.map(c => <Row key={c.id} label={c.label} value={c.valor} indent/>)}
+                <Row label="RESULTADO OPERACIONAL" value={kpis.resultado} bold color={kpis.resultado>=0?'var(--brand-cyan)':'var(--danger)'} divider/>
+                <div style={{marginTop:12,padding:'10px 14px',borderRadius:8,background:'var(--ink-soft)',display:'flex',justifyContent:'space-between'}}>
+                  <span style={{fontSize:12,color:'var(--mist-dim)'}}>Margem líquida</span>
+                  <span style={{fontSize:13,fontWeight:700,color:kpis.margem>=0?'var(--brand-cyan)':'var(--danger)'}}>{fmtPct(kpis.margem)}</span>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Receitas a receber / despesas a pagar */}
+          <div style={{display:'flex',flexDirection:'column',gap:14}}>
+            <div className="card" style={{padding:'16px 18px'}}>
+              <div className="section-title">A Receber</div>
+              {receitas.filter(r => r.status !== 'recebido').length === 0
+                ? <div style={{fontSize:13,color:'var(--mist-muted)'}}>Tudo recebido ✓</div>
+                : receitas.filter(r => r.status !== 'recebido').map(r => {
+                  const st = STATUS_RECEITA.find(s => s.id === r.status);
+                  return (
+                    <div key={r.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'6px 0',borderBottom:'1px solid var(--ink-border-soft)'}}>
+                      <span style={{fontSize:13,color:'var(--mist)'}}>{r.clientName}</span>
+                      <div style={{display:'flex',gap:8,alignItems:'center'}}>
+                        <span style={{fontSize:13,fontWeight:600,color:'var(--mist)'}}>{fmtBRL(r.valor)}</span>
+                        <span style={{fontSize:10,fontWeight:700,background:st?.bg,color:st?.color,padding:'1px 6px',borderRadius:999}}>{st?.label}</span>
+                      </div>
+                    </div>
+                  );
+                })
+              }
+            </div>
+            <div className="card" style={{padding:'16px 18px'}}>
+              <div className="section-title">A Pagar</div>
+              {despesas.filter(d => d.status === 'a-pagar').length === 0
+                ? <div style={{fontSize:13,color:'var(--mist-muted)'}}>Tudo pago ✓</div>
+                : despesas.filter(d => d.status === 'a-pagar').map(d => (
+                  <div key={d.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'6px 0',borderBottom:'1px solid var(--ink-border-soft)'}}>
+                    <span style={{fontSize:13,color:'var(--mist)'}}>{d.descricao}</span>
+                    <span style={{fontSize:13,fontWeight:600,color:'var(--warn)'}}>{fmtBRL(d.valor)}</span>
+                  </div>
+                ))
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* ============================================================
+     FLUXO DE CAIXA TAB
+  ============================================================ */
+  function FluxoCaixaTab({ allEntries, currentYear, currentMonth }) {
+    // Build last 12 months
+    const months = useMemo(() => {
+      const result = [];
+      for (let i = 11; i >= 0; i--) {
+        let m = currentMonth - i;
+        let y = currentYear;
+        while (m < 0) { m += 12; y -= 1; }
+        result.push({ year: y, month: m, label: `${MESES_ABREV[m]}/${y}` });
+      }
+      return result;
+    }, [currentYear, currentMonth]);
+
+    const data = months.map(({ year, month, label }) => {
+      const entry = allEntries[`${year}:${month}`] || emptyEntry();
+      const k = calcKPIs(entry);
+      return { label, receita: k.receitaBruta, despesa: k.despesaTotal, resultado: k.resultado };
+    });
+
+    const maxVal = Math.max(...data.map(d => Math.max(d.receita, d.despesa)), 1);
+
+    return (
+      <div className="tab-content fade-in">
+        <div className="card" style={{padding:'20px',marginBottom:20}}>
+          <div className="section-title">Receita vs Despesa — Últimos 12 meses</div>
+          {/* Bar chart */}
+          <div style={{display:'flex',gap:4,alignItems:'flex-end',height:160,overflowX:'auto',paddingBottom:8}}>
+            {data.map((d, i) => (
+              <div key={i} style={{flex:1,minWidth:32,display:'flex',flexDirection:'column',alignItems:'center',gap:3}}>
+                <div style={{width:'100%',display:'flex',gap:2,alignItems:'flex-end',height:130}}>
+                  <div title={`Receita: ${fmtBRL(d.receita)}`} style={{flex:1,height:`${(d.receita/maxVal)*100}%`,minHeight:d.receita>0?3:0,background:'#1de4f0',borderRadius:'3px 3px 0 0',opacity:.8,transition:'height .3s'}}/>
+                  <div title={`Despesa: ${fmtBRL(d.despesa)}`} style={{flex:1,height:`${(d.despesa/maxVal)*100}%`,minHeight:d.despesa>0?3:0,background:'#f56565',borderRadius:'3px 3px 0 0',opacity:.8,transition:'height .3s'}}/>
+                </div>
+                <div style={{fontSize:8.5,color:'var(--mist-muted)',textAlign:'center',whiteSpace:'nowrap'}}>{d.label}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{display:'flex',gap:16,justifyContent:'center',marginTop:8,fontSize:11,color:'var(--mist-dim)'}}>
+            <span style={{display:'flex',alignItems:'center',gap:5}}><span style={{width:10,height:10,borderRadius:2,background:'#1de4f0',display:'inline-block'}}/> Receita</span>
+            <span style={{display:'flex',alignItems:'center',gap:5}}><span style={{width:10,height:10,borderRadius:2,background:'#f56565',display:'inline-block'}}/> Despesa</span>
+          </div>
+        </div>
+
+        {/* Table */}
+        <div className="card" style={{overflow:'hidden'}}>
+          <table style={{width:'100%',borderCollapse:'collapse',fontSize:13}}>
+            <thead>
+              <tr style={{borderBottom:'1px solid var(--ink-border-soft)'}}>
+                {['Mês','Receita','Despesa','Resultado','Margem'].map(h => (
+                  <th key={h} style={{padding:'10px 14px',textAlign:h==='Mês'?'left':'right',fontSize:11,fontWeight:700,color:'var(--mist-muted)',letterSpacing:'.06em',textTransform:'uppercase'}}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {[...data].reverse().map((d, i) => (
+                <tr key={i} style={{borderBottom:'1px solid var(--ink-border-soft)',background:i%2===0?'transparent':'rgba(255,255,255,.01)'}}>
+                  <td style={{padding:'9px 14px',color:'var(--mist)',fontWeight:500}}>{d.label}</td>
+                  <td style={{padding:'9px 14px',textAlign:'right',color:'var(--brand-cyan)',fontWeight:600}}>{d.receita>0?fmtBRL(d.receita):'—'}</td>
+                  <td style={{padding:'9px 14px',textAlign:'right',color:'var(--danger)',fontWeight:600}}>{d.despesa>0?fmtBRL(d.despesa):'—'}</td>
+                  <td style={{padding:'9px 14px',textAlign:'right',fontWeight:700,color:d.resultado>=0?'var(--brand-cyan)':'var(--danger)'}}>{d.receita>0||d.despesa>0?fmtBRL(d.resultado):'—'}</td>
+                  <td style={{padding:'9px 14px',textAlign:'right',color:d.resultado/Math.max(d.receita,1)*100>=0?'var(--mist-dim)':'var(--danger)'}}>{d.receita>0?fmtPct(d.resultado/d.receita*100):'—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  }
+
+  /* ============================================================
+     CLIENTES MODAL
+  ============================================================ */
+  function AddClientModal({ clients, editClient, onClose, onSave }) {
+    const [nome, setNome] = useState(editClient?.nome || '');
+    function handleSubmit(e) {
+      e.preventDefault();
+      onSave({ id: editClient?.id || uid(), nome: nome.trim(), createdAt: editClient?.createdAt || Date.now() });
+    }
+    return (
+      <div className="modal-backdrop" onClick={onClose}>
+        <div className="modal" style={{width:'min(380px,100%)'}} onClick={e => e.stopPropagation()}>
+          <div style={{padding:'16px 20px',borderBottom:'1px solid var(--ink-border-soft)',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+            <h3 style={{margin:0,fontSize:15,fontWeight:600}}>{editClient ? 'Editar Cliente' : 'Novo Cliente'}</h3>
+            <button className="btn-icon" onClick={onClose}><X size={18}/></button>
+          </div>
+          <form onSubmit={handleSubmit}>
+            <div className="modal-form">
+              <div>
+                <label className="label">Nome do cliente</label>
+                <input type="text" value={nome} onChange={e => setNome(e.target.value)} placeholder="Ex: Elite Assessoria" required autoFocus/>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button type="button" className="btn" onClick={onClose}>Cancelar</button>
+              <button type="submit" className="btn btn-primary">Salvar</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  /* ============================================================
+     CLIENT BAR
+  ============================================================ */
+  function ClientBar({ clients, onAdd, onEdit, onDelete }) {
+    return (
+      <div className="no-print" style={{borderBottom:'1px solid var(--ink-border-soft)',background:'var(--ink-base)'}}>
+        <div style={{maxWidth:1100,margin:'0 auto',padding:'8px 24px',display:'flex',alignItems:'center',gap:8,overflowX:'auto',minHeight:44}}>
+          <span style={{fontSize:11,fontWeight:600,color:'var(--mist-muted)',letterSpacing:'.06em',textTransform:'uppercase',flexShrink:0}}>Clientes</span>
+          {clients.map((c, i) => (
+            <div key={c.id} style={{display:'flex',alignItems:'center',gap:4,background:'var(--ink-raised)',border:'1px solid var(--ink-border-soft)',borderRadius:7,padding:'3px 8px 3px 6px',flexShrink:0}}>
+              <div style={{width:6,height:6,borderRadius:'50%',background:CLIENT_COLORS[i%CLIENT_COLORS.length]}}/>
+              <span style={{fontSize:12,color:'var(--mist)',fontWeight:500}}>{c.nome}</span>
+              <button className="btn-icon" onClick={() => onEdit(c)} style={{padding:2,marginLeft:2}}><Edit3 size={11}/></button>
+              <button className="btn-icon btn-danger" onClick={() => onDelete(c.id)} style={{padding:2}}><Trash2 size={11}/></button>
+            </div>
+          ))}
+          <button className="btn" onClick={onAdd} style={{fontSize:11,padding:'3px 9px',flexShrink:0}}>
+            <Plus size={12}/> Cliente
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  /* ============================================================
+     APP ROOT
+  ============================================================ */
+  function FinanceiroApp() {
+    useFontInjection();
+    const [theme, setTheme]           = useState(() => localStorage.getItem(K.theme) || 'dark');
+    const [user, setUser]             = useState(null);
+    const [authChecked, setAuthChecked] = useState(false);
+    const [tab, setTab]               = useState('receitas');
+    const [currentYear, setCurrentYear] = useState(() => new Date().getFullYear());
+    const [currentMonth, setCurrentMonth] = useState(() => new Date().getMonth());
+    const [entry, setEntry]           = useState(emptyEntry());
+    const [allEntries, setAllEntries] = useState({});
+    const [clients, setClients]       = useState([]);
+    const [clientModal, setClientModal] = useState(null);
+    const { toasts, showToast }       = useToast();
+
+    // Auth
+    useEffect(() => {
+      (async () => {
+        const sc = window.supabaseClient;
+        if (!sc) { setAuthChecked(true); return; }
+        const { data: { session } } = await sc.auth.getSession();
+        if (session) {
+          const { data: profile } = await sc.from('profiles').select('name, role').eq('id', session.user.id).maybeSingle();
+          setUser({ id: session.user.id, email: session.user.email, name: profile?.name || session.user.email.split('@')[0], role: profile?.role || '' });
+        }
+        setAuthChecked(true);
+      })();
+    }, []);
+
+    async function handleLogout() {
+      const sc = window.supabaseClient;
+      if (sc) await sc.auth.signOut();
+      setUser(null);
+    }
+
+    // Load clients
+    useEffect(() => {
+      if (!user || user.role !== 'geral') return;
+      storage.getJSON(K.clients, []).then(setClients);
+    }, [user]);
+
+    // Load current month entry
+    useEffect(() => {
+      if (!user || user.role !== 'geral') return;
+      storage.getJSON(K.entry(currentYear, currentMonth), emptyEntry()).then(e => setEntry(e || emptyEntry()));
+    }, [user, currentYear, currentMonth]);
+
+    // Load all entries for cash flow (last 12 months)
+    useEffect(() => {
+      if (!user || user.role !== 'geral') return;
+      (async () => {
+        const map = {};
+        for (let i = 0; i < 12; i++) {
+          let m = currentMonth - i;
+          let y = currentYear;
+          while (m < 0) { m += 12; y -= 1; }
+          const e = await storage.getJSON(K.entry(y, m), emptyEntry());
+          map[`${y}:${m}`] = e || emptyEntry();
+        }
+        setAllEntries(map);
+      })();
+    }, [user, currentYear, currentMonth]);
+
+    function navigate(dir) {
+      let m = currentMonth + dir;
+      let y = currentYear;
+      if (m > 11) { m = 0; y += 1; }
+      if (m < 0)  { m = 11; y -= 1; }
+      setCurrentMonth(m); setCurrentYear(y);
+    }
+
+    function goToday() {
+      setCurrentMonth(new Date().getMonth());
+      setCurrentYear(new Date().getFullYear());
+    }
+
+    async function saveEntry(newEntry) {
+      setEntry(newEntry);
+      setAllEntries(prev => ({ ...prev, [`${currentYear}:${currentMonth}`]: newEntry }));
+      await storage.set(K.entry(currentYear, currentMonth), newEntry);
+    }
+
+    // Receitas CRUD
+    async function handleSaveReceita(editing, data) {
+      const receitas = entry.receitas || [];
+      const newReceitas = editing
+        ? receitas.map(r => r.id === editing.id ? { ...r, ...data } : r)
+        : [...receitas, { id: uid(), ...data, createdAt: Date.now() }];
+      await saveEntry({ ...entry, receitas: newReceitas });
+      showToast('success', editing ? 'Receita atualizada' : 'Receita adicionada');
+    }
+    async function handleDeleteReceita(id) {
+      await saveEntry({ ...entry, receitas: (entry.receitas||[]).filter(r => r.id !== id) });
+      showToast('success', 'Receita removida');
+    }
+
+    // Despesas CRUD
+    async function handleSaveDespesa(editing, data) {
+      const despesas = entry.despesas || [];
+      const newDespesas = editing
+        ? despesas.map(d => d.id === editing.id ? { ...d, ...data } : d)
+        : [...despesas, { id: uid(), ...data, createdAt: Date.now() }];
+      await saveEntry({ ...entry, despesas: newDespesas });
+      showToast('success', editing ? 'Despesa atualizada' : 'Despesa adicionada');
+    }
+    async function handleDeleteDespesa(id) {
+      await saveEntry({ ...entry, despesas: (entry.despesas||[]).filter(d => d.id !== id) });
+      showToast('success', 'Despesa removida');
+    }
+
+    // Clients CRUD
+    async function handleSaveClient(client) {
+      const isEdit = clients.some(c => c.id === client.id);
+      const next = isEdit ? clients.map(c => c.id === client.id ? client : c) : [...clients, client];
+      setClients(next);
+      await storage.set(K.clients, next);
+      setClientModal(null);
+      showToast('success', isEdit ? 'Cliente atualizado' : 'Cliente adicionado');
+    }
+    async function handleDeleteClient(id) {
+      const next = clients.filter(c => c.id !== id);
+      setClients(next);
+      await storage.set(K.clients, next);
+    }
+
+    const kpis = useMemo(() => calcKPIs(entry), [entry]);
+    const canEdit = user?.role === 'geral';
+
+    const TABS = [
+      { id:'receitas',  label:'Receitas',      icon:<DollarSign size={14}/> },
+      { id:'despesas',  label:'Despesas',       icon:<Receipt size={14}/> },
+      { id:'dre',       label:'DRE',            icon:<Layers size={14}/> },
+      { id:'fluxo',     label:'Fluxo de Caixa', icon:<Activity size={14}/> },
+    ];
+
+    // Auth gates
+    if (!authChecked) return (
+      <div style={{minHeight:'100vh',background:'#050608',display:'flex',alignItems:'center',justifyContent:'center'}}>
+        <GlobalStyles theme="dark"/>
+        <BBothLogo size={22}/>
+      </div>
+    );
+    if (!user) return <><GlobalStyles theme="dark"/><LoginScreen onLogin={u => setUser(u)}/></>;
+    if (user.role !== 'geral') return <><GlobalStyles theme="dark"/><AccessDenied user={user} onLogout={handleLogout}/></>;
+
+    return (
+      <>
+        <GlobalStyles theme={theme}/>
+        <FinHeader
+          year={currentYear} month={currentMonth}
+          onPrev={() => navigate(-1)} onNext={() => navigate(1)} onToday={goToday}
+          theme={theme} onToggleTheme={() => { const n=theme==='dark'?'light':'dark'; setTheme(n); localStorage.setItem(K.theme,n); }}
+          user={user} onLogout={handleLogout}
+          kpis={kpis}
+        />
+        <ClientBar
+          clients={clients}
+          onAdd={() => setClientModal('add')}
+          onEdit={c => setClientModal(c)}
+          onDelete={handleDeleteClient}
+        />
+        {/* Tab strip */}
+        <div className="tab-strip no-print" style={{maxWidth:1100,margin:'0 auto',padding:'0 24px'}}>
+          {TABS.map(t => (
+            <button key={t.id} className={`fin-tab${tab===t.id?' active':''}`} onClick={() => setTab(t.id)}>
+              {t.icon} {t.label}
+            </button>
+          ))}
+        </div>
+
+        <main style={{minHeight:'calc(100vh - 100px)'}}>
+          {tab === 'receitas' && <ReceitasTab entry={entry} clients={clients} onSaveReceita={handleSaveReceita} onDeleteReceita={handleDeleteReceita} canEdit={canEdit}/>}
+          {tab === 'despesas' && <DespesasTab entry={entry} onSaveDespesa={handleSaveDespesa} onDeleteDespesa={handleDeleteDespesa} canEdit={canEdit}/>}
+          {tab === 'dre'      && <DRETab      entry={entry} year={currentYear} month={currentMonth}/>}
+          {tab === 'fluxo'    && <FluxoCaixaTab allEntries={allEntries} currentYear={currentYear} currentMonth={currentMonth}/>}
+        </main>
+
+        <Toast toasts={toasts}/>
+
+        {clientModal && (
+          <AddClientModal
+            clients={clients}
+            editClient={clientModal === 'add' ? null : clientModal}
+            onClose={() => setClientModal(null)}
+            onSave={handleSaveClient}
+          />
+        )}
+      </>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<FinanceiroApp/>);
+  </script>
+</body>
+</html>
