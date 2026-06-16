@@ -225,6 +225,23 @@
   ];
 
   /* ============================================================
+     LEAD TYPES & STATUSES
+  ============================================================ */
+  const LEAD_TYPES = [
+    { id:'cliente',      label:'Lead de Cliente',      color:'#0166fc' },
+    { id:'recrutamento', label:'Lead de Recrutamento', color:'#7c3aed' },
+  ];
+  const LEAD_STATUSES = [
+    { id:'novo',        label:'Novo',           color:'#8896a8' },
+    { id:'qualificado', label:'Qualificado',    color:'#0166fc' },
+    { id:'negociacao',  label:'Em negociação',  color:'#f5b342' },
+    { id:'convertido',  label:'Convertido',     color:'#1de4f0' },
+    { id:'perdido',     label:'Perdido',        color:'#f56565' },
+  ];
+  function leadTypeInfo(id) { return LEAD_TYPES.find(t => t.id === id) || LEAD_TYPES[0]; }
+  function leadStatusInfo(id) { return LEAD_STATUSES.find(s => s.id === id) || LEAD_STATUSES[0]; }
+
+  /* ============================================================
      METRICS SCHEMA
   ============================================================ */
   function emptyMetrics() {
@@ -238,6 +255,9 @@
       // Total actual spend
       valorGasto:'',
       observations:'',
+      // Lead classification
+      tipo: 'cliente',
+      status: 'novo',
     };
   }
 
@@ -1124,6 +1144,30 @@
           )}
         </div>
 
+        {/* Tipo de lead & Status */}
+        <div className="form-grid form-grid-2">
+          <div>
+            <label className="label">Tipo de lead</label>
+            <select
+              value={m.tipo || 'cliente'}
+              onChange={e => set('tipo', e.target.value)}
+              style={{background:'var(--ink-raised)',border:'1px solid var(--ink-border)',borderRadius:9,padding:'10px 13px',color:'var(--mist)',fontSize:13.5,fontFamily:'inherit',outline:'none',width:'100%',cursor:'pointer'}}
+            >
+              {LEAD_TYPES.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="label">Status</label>
+            <select
+              value={m.status || 'novo'}
+              onChange={e => set('status', e.target.value)}
+              style={{background:'var(--ink-raised)',border:'1px solid var(--ink-border)',borderRadius:9,padding:'10px 13px',color:'var(--mist)',fontSize:13.5,fontFamily:'inherit',outline:'none',width:'100%',cursor:'pointer'}}
+            >
+              {LEAD_STATUSES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+            </select>
+          </div>
+        </div>
+
         {/* Captação & Investimento por plataforma — tabela unificada */}
         <div>
           <div className="section-title">
@@ -1271,6 +1315,20 @@
             }}>
               {a.badge} · {a.score}/100
             </div>
+            {(() => {
+              const lt = leadTypeInfo(entry.metrics.tipo);
+              const ls = leadStatusInfo(entry.metrics.status);
+              return (
+                <>
+                  <span style={{display:'inline-flex',alignItems:'center',gap:6,padding:'5px 12px',borderRadius:999,fontSize:12,fontWeight:600,background:`${lt.color}18`,color:lt.color,border:`1px solid ${lt.color}40`}}>
+                    {lt.label}
+                  </span>
+                  <span style={{display:'inline-flex',alignItems:'center',gap:6,padding:'5px 12px',borderRadius:999,fontSize:12,fontWeight:600,background:`${ls.color}18`,color:ls.color,border:`1px solid ${ls.color}40`}}>
+                    {ls.label}
+                  </span>
+                </>
+              );
+            })()}
             <span style={{fontSize:13,color:'var(--mist-dim)'}}>{entry.weekLabel}</span>
           </div>
           <div style={{display:'flex',gap:8}}>
@@ -1573,6 +1631,7 @@
     [entries, selectedCompanyId]);
     const selectedCompany = companies.find(c => c.id === selectedCompanyId);
     const [month, setMonth] = useState(now.getUTCMonth());
+    const [tipoFilter, setTipoFilter] = useState('all');
 
     function navMonth(dir) {
       let m = month + dir, y = year;
@@ -1586,9 +1645,24 @@
         .sort((a,b) => a.week - b.week);
     }, [filteredEntries, year, month]);
 
+    const leadCounts = useMemo(() => {
+      const c = { all: monthEntries.length, cliente: 0, recrutamento: 0, convertido: 0 };
+      for (const e of monthEntries) {
+        const tipo = e.metrics.tipo || 'cliente';
+        if (c[tipo] !== undefined) c[tipo]++;
+        if ((e.metrics.status || 'novo') === 'convertido') c.convertido++;
+      }
+      return c;
+    }, [monthEntries]);
+
+    const tipoFilteredEntries = useMemo(() => {
+      if (tipoFilter === 'all') return monthEntries;
+      return monthEntries.filter(e => (e.metrics.tipo || 'cliente') === tipoFilter);
+    }, [monthEntries, tipoFilter]);
+
     const totals = useMemo(() => {
       const t = { leadsTotal:0, leadsQualificados:0, vendas:0, valorVenda:0, investimentoMidia:0, valorGasto:0 };
-      for (const e of monthEntries) {
+      for (const e of tipoFilteredEntries) {
         t.leadsTotal        += getLeadsTotal(e.metrics);
         t.leadsQualificados += getLeadsQualTotal(e.metrics);
         t.vendas            += num(e.metrics.vendas || e.metrics.fechamentos); // compat
@@ -1597,24 +1671,55 @@
         t.valorGasto        += num(e.metrics.valorGasto);
       }
       return t;
-    }, [monthEntries]);
+    }, [tipoFilteredEntries]);
     const saldoMensal = totals.investimentoMidia > 0 && totals.valorGasto > 0
       ? totals.investimentoMidia - totals.valorGasto : null;
 
     const convRateMed = totals.leadsTotal > 0 ? (totals.vendas/totals.leadsTotal*100) : 0;
     const cplMed = (totals.leadsTotal > 0 && totals.investimentoMidia > 0) ? totals.investimentoMidia/totals.leadsTotal : null;
 
-    const barData = monthEntries.map(e => ({
+    const barData = tipoFilteredEntries.map(e => ({
       label: `S${e.week}`,
       value: getLeadsTotal(e.metrics),
     }));
-    const lineData = monthEntries.filter(e=>getLeadsTotal(e.metrics)>0).map(e => ({
+    const lineData = tipoFilteredEntries.filter(e=>getLeadsTotal(e.metrics)>0).map(e => ({
       label: `S${e.week}`,
       value: (num(e.metrics.vendas||e.metrics.fechamentos)/getLeadsTotal(e.metrics)*100),
     }));
 
     return (
       <div style={{maxWidth:960,margin:'0 auto',padding:'28px 20px'}}>
+        {/* Lead counters */}
+        <div className="no-print" style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(120px,1fr))',gap:12,marginBottom:16}}>
+          <KpiCard label="Leads no mês"  value={leadCounts.all}         icon={Users}/>
+          <KpiCard label="Recrutamento"  value={leadCounts.recrutamento} icon={Target}     color={leadTypeInfo('recrutamento').color}/>
+          <KpiCard label="Cliente"       value={leadCounts.cliente}      icon={UserCheck}  color={leadTypeInfo('cliente').color}/>
+          <KpiCard label="Convertidos"   value={leadCounts.convertido}   icon={CheckCircle2} color={leadStatusInfo('convertido').color}/>
+        </div>
+
+        {/* Tipo filter */}
+        <div className="no-print" style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:24}}>
+          {[
+            { id:'all', label:'Todos', count: leadCounts.all },
+            { id:'recrutamento', label:'Recrutamento', count: leadCounts.recrutamento },
+            { id:'cliente', label:'Cliente', count: leadCounts.cliente },
+          ].map(f => (
+            <button
+              key={f.id}
+              onClick={()=>setTipoFilter(f.id)}
+              className="btn"
+              style={{
+                background: tipoFilter === f.id ? 'var(--ink-raised)' : 'transparent',
+                borderColor: tipoFilter === f.id ? 'var(--ink-border)' : 'transparent',
+                color: tipoFilter === f.id ? 'var(--mist)' : 'var(--mist-dim)',
+              }}
+            >
+              {f.label}
+              <span style={{fontSize:11,color:'var(--mist-muted)',marginLeft:4}}>{f.count}</span>
+            </button>
+          ))}
+        </div>
+
         {/* Month nav */}
         <div className="no-print" style={{display:'flex',alignItems:'center',gap:16,marginBottom:28,justifyContent:'center'}}>
           <button className="btn-icon" onClick={()=>navMonth(-1)}><ChevronLeft size={16}/></button>
@@ -1631,6 +1736,11 @@
             <BarChart2 size={36} strokeWidth={1.2} style={{margin:'0 auto 12px'}}/>
             <div style={{fontSize:14}}>Nenhuma semana registrada em {MONTHS_FULL_PT[month]} {year}</div>
             <div style={{fontSize:12,marginTop:4}}>Acesse "Análise Semanal" para adicionar dados.</div>
+          </div>
+        ) : tipoFilteredEntries.length === 0 ? (
+          <div style={{textAlign:'center',padding:'60px 20px',color:'var(--mist-muted)'}}>
+            <Target size={36} strokeWidth={1.2} style={{margin:'0 auto 12px'}}/>
+            <div style={{fontSize:14}}>Nenhum lead do tipo selecionado em {MONTHS_FULL_PT[month]} {year}</div>
           </div>
         ) : (<>
           {/* Print header */}
@@ -1657,23 +1767,31 @@
             <table className="data-table">
               <thead>
                 <tr style={{borderBottom:'1px solid var(--ink-border)'}}>
-                  {['Sem.','Período','Leads','Qualif.','Vendas','Receita','Invest.','Gasto','Saldo','Conv.%'].map(h=>(
+                  {['Sem.','Período','Tipo / Status','Leads','Qualif.','Vendas','Receita','Invest.','Gasto','Saldo','Conv.%'].map(h=>(
                     <th key={h}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {monthEntries.map((e,i)=>{
+                {tipoFilteredEntries.map((e,i)=>{
                   const v = num(e.metrics.vendas || e.metrics.fechamentos);
                   const lt = getLeadsTotal(e.metrics);
                   const cv = lt > 0 ? (v/lt*100).toFixed(1) : '—';
                   const gasto = num(e.metrics.valorGasto);
                   const invest = getInvestTotal(e.metrics);
                   const saldo = (invest > 0 && gasto > 0) ? invest - gasto : null;
+                  const ltype = leadTypeInfo(e.metrics.tipo);
+                  const lstatus = leadStatusInfo(e.metrics.status);
                   return (
                     <tr key={e.id} style={{borderBottom:'1px solid var(--ink-border-soft)',background:i%2===0?'transparent':'var(--ink-raised)'}}>
                       <td style={{fontWeight:600,color:'var(--brand-blue)',fontFamily:'var(--mono)'}}>S{e.week}</td>
                       <td style={{color:'var(--mist-dim)',whiteSpace:'nowrap'}}>{e.weekLabel.split('·')[1]?.trim()||''}</td>
+                      <td style={{whiteSpace:'nowrap'}}>
+                        <div style={{display:'flex',flexDirection:'column',gap:3}}>
+                          <span style={{fontSize:11,fontWeight:600,color:ltype.color}}>{ltype.label.replace('Lead de ','')}</span>
+                          <span style={{fontSize:11,fontWeight:600,color:lstatus.color}}>{lstatus.label}</span>
+                        </div>
+                      </td>
                       <td style={{fontWeight:600}}>{lt||'—'}</td>
                       <td>{getLeadsQualTotal(e.metrics)||'—'}</td>
                       <td style={{fontWeight:600,color:'var(--brand-cyan)'}}>{v||'—'}</td>
@@ -1690,7 +1808,7 @@
               </tbody>
               <tfoot>
                 <tr style={{borderTop:'2px solid var(--ink-border)',background:'var(--ink-soft)'}}>
-                  <td colSpan={2} style={{fontWeight:700,color:'var(--mist-dim)',textTransform:'uppercase',letterSpacing:'.04em',fontSize:10}}>Total</td>
+                  <td colSpan={3} style={{fontWeight:700,color:'var(--mist-dim)',textTransform:'uppercase',letterSpacing:'.04em',fontSize:10}}>Total</td>
                   <td style={{fontWeight:700}}>{totals.leadsTotal}</td>
                   <td style={{fontWeight:700}}>{totals.leadsQualificados||'—'}</td>
                   <td style={{fontWeight:700,color:'var(--brand-cyan)'}}>{totals.vendas}</td>
